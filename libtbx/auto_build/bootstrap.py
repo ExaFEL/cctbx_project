@@ -751,8 +751,8 @@ class libsvm_module(SourceModule):
 # These must all provide anonymous access.
 class cctbx_module(SourceModule):
   module = 'cctbx_project'
-  anonymous = ['git',
-               'git@github.com:cctbx/cctbx_project.git',
+  anonymous = ['git', '-b sept_sprint',
+               'git@github.com:ExaFEL/cctbx_project.git',
                'https://github.com/ExaFEL/cctbx_project.git',
                'https://github.com/ExaFEL/cctbx_project/archive/sept_sprint.zip']
 
@@ -781,8 +781,8 @@ class geostd_module(SourceModule):
 
 class cbflib_module(SourceModule):
   module = 'cbflib'
-  anonymous = ['git',
-               'git@github.com:yayahjb/cbflib.git',
+  anonymous = ['git', '-b sept_sprint',
+               'git@github.com:ExaFEL/cbflib.git',
                'https://github.com/ExaFEL/cbflib.git',
                'https://github.com/ExaFEL/cbflib/archive/sept_sprint.zip']
 
@@ -910,8 +910,8 @@ class labelit_regression_module(SourceModule):
 
 class dials_module(SourceModule):
   module = 'dials'
-  anonymous = ['git',
-               'git@github.com:dials/dials.git',
+  anonymous = ['git', '-b sept_sprint',
+               'git@github.com:ExaFEL/dials.git',
                'https://github.com/ExaFEL/dials.git',
                'https://github.com/ExaFEL/dials/archive/sept_sprint.zip']
 
