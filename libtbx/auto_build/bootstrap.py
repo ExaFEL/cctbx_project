@@ -753,8 +753,8 @@ class cctbx_module(SourceModule):
   module = 'cctbx_project'
   anonymous = ['git',
                'git@github.com:cctbx/cctbx_project.git',
-               'https://github.com/cctbx/cctbx_project.git',
-               'https://github.com/cctbx/cctbx_project/archive/master.zip']
+               'https://github.com/ExaFEL/cctbx_project.git',
+               'https://github.com/ExaFEL/cctbx_project/archive/master.zip']
 
 class qrefine_module(SourceModule):
   module = 'qrefine'
@@ -783,8 +783,8 @@ class cbflib_module(SourceModule):
   module = 'cbflib'
   anonymous = ['git',
                'git@github.com:yayahjb/cbflib.git',
-               'https://github.com/yayahjb/cbflib.git',
-               'https://github.com/yayahjb/cbflib/archive/master.zip']
+               'https://github.com/ExaFEL/cbflib.git',
+               'https://github.com/ExaFEL/cbflib/archive/master.zip']
 
 class ccp4io_adaptbx(SourceModule):
   module = 'ccp4io_adaptbx'
@@ -912,8 +912,8 @@ class dials_module(SourceModule):
   module = 'dials'
   anonymous = ['git',
                'git@github.com:dials/dials.git',
-               'https://github.com/dials/dials.git',
-               'https://github.com/dials/dials/archive/master.zip']
+               'https://github.com/ExaFEL/dials.git',
+               'https://github.com/ExaFEL/dials/archive/master.zip']
 
 class dials_regression_module(SourceModule):
   module = 'dials_regression'
@@ -1598,8 +1598,8 @@ class CCIBuilder(Builder):
     'gui_resources',
     'ccp4io_adaptbx',
     'annlib_adaptbx',
-    'tntbx',
-    'clipper'
+    #'tntbx',
+    #'clipper'
   ]
   CODEBASES_EXTRA = []
   # Copy these sources from cci.lbl.gov
@@ -1732,14 +1732,14 @@ class LABELITBuilder(CCIBuilder):
 class XFELBuilder(CCIBuilder):
   CODEBASES_EXTRA = [
     'dials',
-    'labelit',
-    'cxi_xdr_xes'
+    #'labelit',
+    #'cxi_xdr_xes'
   ]
   LIBTBX_EXTRA = [
     'dials',
-    'labelit',
+    #'labelit',
     'xfel',
-    'cxi_xdr_xes',
+    #'cxi_xdr_xes',
     'prime',
     'iota'
   ]
