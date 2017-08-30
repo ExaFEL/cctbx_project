@@ -752,9 +752,9 @@ class libsvm_module(SourceModule):
 class cctbx_module(SourceModule):
   module = 'cctbx_project'
   anonymous = ['git',
-               'git@github.com:cctbx/cctbx_project.git',
-               'https://github.com/cctbx/cctbx_project.git',
-               'https://github.com/cctbx/cctbx_project/archive/master.zip']
+               'git@github.com:exafel/cctbx_project.git',
+               'https://github.com/exafel/cctbx_project.git',
+               'https://github.com/exafel/cctbx_project/archive/master.zip']
 
 class qrefine_module(SourceModule):
   module = 'qrefine'
@@ -782,9 +782,9 @@ class geostd_module(SourceModule):
 class cbflib_module(SourceModule):
   module = 'cbflib'
   anonymous = ['git',
-               'git@github.com:yayahjb/cbflib.git',
-               'https://github.com/yayahjb/cbflib.git',
-               'https://github.com/yayahjb/cbflib/archive/master.zip']
+               'git@github.com:exafel/cbflib.git',
+               'https://github.com/exafel/cbflib.git',
+               'https://github.com/exafel/cbflib/archive/master.zip']
 
 class ccp4io_adaptbx(SourceModule):
   module = 'ccp4io_adaptbx'
@@ -911,9 +911,9 @@ class labelit_regression_module(SourceModule):
 class dials_module(SourceModule):
   module = 'dials'
   anonymous = ['git',
-               'git@github.com:dials/dials.git',
-               'https://github.com/dials/dials.git',
-               'https://github.com/dials/dials/archive/master.zip']
+               'git@github.com:exafel/dials.git',
+               'https://github.com/exafel/dials.git',
+               'https://github.com/exafel/dials/archive/master.zip']
 
 class dials_regression_module(SourceModule):
   module = 'dials_regression'
@@ -1597,9 +1597,9 @@ class CCIBuilder(Builder):
     'cctbx_project',
     'gui_resources',
     'ccp4io_adaptbx',
-    'annlib_adaptbx',
-    'tntbx',
-    'clipper'
+    'annlib_adaptbx'
+    #'tntbx',
+    #'clipper'
   ]
   CODEBASES_EXTRA = []
   # Copy these sources from cci.lbl.gov
@@ -1732,14 +1732,14 @@ class LABELITBuilder(CCIBuilder):
 class XFELBuilder(CCIBuilder):
   CODEBASES_EXTRA = [
     'dials',
-    'labelit',
-    'cxi_xdr_xes'
+    #'labelit',
+    #'cxi_xdr_xes'
   ]
   LIBTBX_EXTRA = [
     'dials',
-    'labelit',
+    #'labelit',
     'xfel',
-    'cxi_xdr_xes',
+    #'cxi_xdr_xes',
     'prime',
     'iota'
   ]
