@@ -754,7 +754,7 @@ class cctbx_module(SourceModule):
   anonymous = ['git',
                'git@github.com:cctbx/cctbx_project.git',
                'https://github.com/ExaFEL/cctbx_project.git',
-               'https://github.com/ExaFEL/cctbx_project/archive/master.zip']
+               'https://github.com/ExaFEL/cctbx_project/archive/sept_sprint.zip']
 
 class qrefine_module(SourceModule):
   module = 'qrefine'
@@ -763,7 +763,7 @@ class qrefine_module(SourceModule):
                'https://github.com/qrefine/qrefine.git',
                #'git@github.com:cctbx/cctbx_project.git',
                #'https://github.com/cctbx/cctbx_project.git',
-               #'https://github.com/cctbx/cctbx_project/archive/master.zip']
+               #'https://github.com/cctbx/cctbx_project/archive/sept_sprint.zip']
                ]
 
 class mon_lib_module(SourceModule):
@@ -784,7 +784,7 @@ class cbflib_module(SourceModule):
   anonymous = ['git',
                'git@github.com:yayahjb/cbflib.git',
                'https://github.com/ExaFEL/cbflib.git',
-               'https://github.com/ExaFEL/cbflib/archive/master.zip']
+               'https://github.com/ExaFEL/cbflib/archive/sept_sprint.zip']
 
 class ccp4io_adaptbx(SourceModule):
   module = 'ccp4io_adaptbx'
@@ -913,7 +913,7 @@ class dials_module(SourceModule):
   anonymous = ['git',
                'git@github.com:dials/dials.git',
                'https://github.com/ExaFEL/dials.git',
-               'https://github.com/ExaFEL/dials/archive/master.zip']
+               'https://github.com/ExaFEL/dials/archive/sept_sprint.zip']
 
 class dials_regression_module(SourceModule):
   module = 'dials_regression'
