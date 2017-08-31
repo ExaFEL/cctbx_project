@@ -107,6 +107,8 @@ class find_outliers:
     self.cache_status = self.update(horizon_phil,ai,status_with_marked_outliers=None)
 
   def update(self,horizon_phil,ai,status_with_marked_outliers,verbose=False):
+    from libtbx.development.timers import Profiler
+    P = Profiler("outliers update")
     # first time through: status with marked outliers is None; no input information
     # second time through after re-refinement: status is a list of SpotClass instances
     first_time_through = status_with_marked_outliers is None
@@ -123,6 +125,8 @@ class find_outliers:
     return self.update_detail(horizon_phil,current_status,first_time_through,verbose)
 
   def update_detail(self,horizon_phil,current_status,first_time_through,verbose):
+    from libtbx.development.timers import Profiler
+    AA = Profiler("outliers update detail")
     assert(len(self.observed_spots) == len(self.predicted_spots))
 
     if horizon_phil.indexing.outlier_detection.verbose:
@@ -143,6 +147,7 @@ class find_outliers:
         print """Rerefinement on just the well-fit spots followed by spot reclassification
       leaves %d good spots on which to calculate a triclinic rmsd."""%(class_counts["GOOD"])
 
+    P = Profiler("check good spots")
     # check good spots
     if (self.good is not None):
       match = 0
@@ -165,8 +170,10 @@ class find_outliers:
       self.sorted_observed_spots[
         math.sqrt(self.dx[i]*self.dx[i] + self.dy[i]*self.dy[i])] = i
 
+    P = Profiler("separate GOOD spots")
     # separate GOOD spots
     spotclasses = {SpotClass.GOOD:0,SpotClass.SPINDLE:0,SpotClass.OVERLAP:0,SpotClass.ICE:0,SpotClass.OUTLIER:0,SpotClass.NONE:0}
+    AA = Profiler("GOOD A")
     for key in sorted(self.sorted_observed_spots.keys()):
       spotclass = current_status[self.sorted_observed_spots[key]]
       spotclasses[spotclass]+=1
@@ -174,6 +181,7 @@ class find_outliers:
         self.dr.append(key)
       else:
         self.not_good_dr.append(key)
+    AA = Profiler("GOOD B")
     if verbose: print ", ".join(["=".join([str(i[0]),"%d"%i[1]]) for i in spotclasses.items()]),
     totalsp = sum([spotclasses.values()[iidx] for iidx in xrange(len(spotclasses))])
     if verbose: print "Total=%d"%(totalsp),"# observed spots",len(self.observed_spots)
@@ -182,11 +190,13 @@ class find_outliers:
     self.x = flex.double(len(self.dr))
     for i in xrange(len(self.x)):
       self.x[i] = float(i)/float(len(self.x))
+    AA = Profiler("GOOD C")
 
     limit = int(self.fraction*len(self.dr))
     if limit < 4: return # Basic sanity check, need at least a few good spots to fit the distribution
     fitted_rayleigh = fit_cdf(x_data=self.dr[0:limit],
                               y_data=self.x[0:limit],distribution=rayleigh)
+    AA = Profiler("GOOD false")
     if False:
         y_data=self.x[0:limit]
         inv_cdf = [fitted_rayleigh.distribution.inv_cdf(cdf) for cdf in y_data]
@@ -195,11 +205,13 @@ class find_outliers:
         plt.plot(inv_cdf,y_data,"b.")
         plt.show()
 
+    P = Profiler("store indices for spots used for fitting")
     # store indices for spots used for fitting
     self.fraction_spot_indices = []
     for dr in self.dr[0:limit]:
       self.fraction_spot_indices.append(self.sorted_observed_spots[dr])
 
+    P = Profiler("generate points for fitted distributions")
     # generate points for fitted distributions
     rayleigh_cdf_x = flex.double(500)
     for i in xrange(len(rayleigh_cdf_x)):
@@ -208,6 +220,7 @@ class find_outliers:
     for i in xrange(len(rayleigh_cdf_x)):
       rayleigh_cdf[i] = fitted_rayleigh.distribution.cdf(x=rayleigh_cdf_x[i])
 
+    P = Profiler("generate points for pdf")
     # generate points for pdf
     dr_bins,dr_histogram = make_histogram_data(data=self.dr,n_bins=100)
     rayleigh_pdf = flex.double(len(dr_bins))
@@ -217,13 +230,18 @@ class find_outliers:
     dr_bins = flex.double(dr_bins)
     dr_histogram = flex.double(dr_histogram)
 
+    P = Profiler("standard deviation for cdf")
     # standard deviation for cdf
+    Q = Profiler("standard deviation for cdf 1")
     sd = math.sqrt((4.0-math.pi)/(2.0)*
                    fitted_rayleigh.x[0]*fitted_rayleigh.x[0])
     if self.verbose:print 'Standard deviation of Rayleigh fit = %4.3f'%sd
     sd_data = None
     radius_outlier_index = None
     limit_outlier = None
+
+    #------------
+    """
     for i in xrange(len(rayleigh_cdf_x)):
       mx = rayleigh_cdf_x[i]
       my = rayleigh_cdf[i]
@@ -232,6 +250,7 @@ class find_outliers:
         upper_y = self.x[j]
         lower_x = self.dr[j-1]
         lower_y = self.x[j-1]
+
         if ((my >= lower_y) and (my < upper_y)):
           if ((sd <= (upper_x - mx)) and ((lower_x - mx) > 0.0)):
             sd_data = ((mx,my),(lower_x,lower_y))
@@ -241,6 +260,26 @@ class find_outliers:
             break
         if (sd_data is not None):
           break
+    """
+    from rstbx.indexing_api import find_green_bar
+    green = find_green_bar(rayleigh_cdf_x = rayleigh_cdf_x,
+                           rayleigh_cdf = rayleigh_cdf,
+                           dr = self.dr, x = self.x, sd = sd)
+    Q = Profiler("green")
+    if green.is_set:
+      #assert radius_outlier_index == green.radius_outlier_index
+      #assert limit_outlier == green.limit_outlier
+      #assert sd_data[0][0] == green.sd_mx
+      #assert sd_data[0][1] == green.sd_my
+      #assert sd_data[1][0] == green.sd_lower_x
+      #assert sd_data[1][1] == green.sd_lower_y
+      if self.verbose:print "Width of green bar = %4.3f"%(green.lower_x - green.mx)
+      radius_outlier_index = green.radius_outlier_index
+      limit_outlier = green.limit_outlier
+      sd_data = ((green.sd_mx, green.sd_my), (green.sd_lower_x, green.sd_lower_y))
+
+    #--------------
+    Q = Profiler("standard deviation for cdf 2")
     if (radius_outlier_index is None):
       radius_outlier_index = len(self.dr)
     if (limit_outlier is None):
@@ -250,6 +289,7 @@ class find_outliers:
       if (rayleigh_cdf[i] >= 0.95):
         radius_95 = rayleigh_cdf_x[i]
         break
+    Q = Profiler("standard deviation for cdf 3")
     if (radius_95 is None):
       radius_95 = rayleigh_cdf_x[-1]
     upper_circle = []
@@ -267,6 +307,7 @@ class find_outliers:
     lower_circle.append((x,-y))
     self.sqrtr2 = math.sqrt(r2)
 
+    Q = Profiler("standard deviation for cdf 4")
     # color code dx dy
     dxdy_fraction = []
     dxdy_inliers = []
@@ -294,7 +335,9 @@ class find_outliers:
                  (self.dy[i] > 1.0) or (self.dy[i] < -1.0))):
           dxdy_outliers.append((self.dx[i],self.dy[i]))
     if verbose: print ", ".join(["=".join([str(i[0]),"%d"%i[1]]) for i in trifold.items()])
+    Q = Profiler("standard deviation for cdf 5")
 
+    P = Profiler("color code observed fractions")
     # color code observed fractions
     o_fraction = []
     o_inliers = []
@@ -314,6 +357,7 @@ class find_outliers:
       for i in xrange(radius_outlier_index, len(self.dr)):
         o_outliers_for_severity.append((self.dr[i],self.x[i]))
 
+    P = Profiler("limit data range")
     # limit data range
     for i in xrange(len(dr_bins)):
       if (dr_bins[i] > 1.0):
@@ -324,6 +368,7 @@ class find_outliers:
     ho = format_data(x_data=dr_bins,y_data=dr_histogram)
     hr = format_data(x_data=dr_bins,y_data=rayleigh_pdf)
 
+    P = Profiler("format data for graphing")
     # format data for graphing
     self.plot_dxdy_data = [dxdy_fraction,dxdy_inliers,dxdy_outliers,
                            [(0.0,0.0)],[],[],[],[]]
@@ -346,12 +391,14 @@ class find_outliers:
       self.plot_cdf_data.append(sd_data)
     self.plot_pdf_data = [ho,hr]
 
+    P = Profiler("mark outliers")
     # mark outliers
     if (first_time_through): #i.e., first time through the update() method
       if (radius_outlier_index < len(self.dr)):
         for i in xrange(radius_outlier_index,len(self.dr)):
           current_status[self.sorted_observed_spots[self.dr[i]]] = SpotClass.OUTLIER
 
+    P = Profiler("reset good spots")
     # reset good spots
     self.good = [False for i in xrange(len(self.observed_spots))]
     for i in xrange(len(self.observed_spots)):
