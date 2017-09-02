@@ -145,18 +145,18 @@ def trumpet_wrapper(result, postx, file_name, params, out):
       from dxtbx.model import BeamFactory
       beam = BeamFactory.make_beam(s0=(0,0,-1./result["wavelength"]))
       from dxtbx.model import Experiment
-      from dxtbx.model import crystal
+      from dxtbx.model import Crystal
 
       obs_to_plot = postx.observations_original_index_pair1_selected # XXX uses a private interface
 
       HKL=obs_to_plot.indices()
       i_sigi=obs_to_plot.data()/obs_to_plot.sigmas()
       direct_matrix = result["current_orientation"][0].direct_matrix()
-      real_a = direct_matrix[0:3]
-      real_b = direct_matrix[3:6]
-      real_c = direct_matrix[6:9]
       SG = obs_to_plot.space_group()
-      crystal = crystal.crystal_model(real_a, real_b, real_c, space_group=SG)
+      crystal = Crystal(real_space_a = direct_matrix[0:3],
+                        real_space_b = direct_matrix[3:6],
+                        real_space_c = direct_matrix[6:9],
+                        space_group=SG)
       q = Experiment(beam=beam, crystal=crystal)
 
       TPL = trumpet_plot()
