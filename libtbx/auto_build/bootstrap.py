@@ -824,7 +824,7 @@ class eigen_module(SourceModule):
 # Phenix repositories
 class phenix_module(SourceModule):
   module = 'phenix'
-  authenticated = ['svn', 'svn+ssh://%(cciuser)s@cci.lbl.gov/phenix/trunk']
+  authenticated = ['svn', 'svn+ssh://%(cciuser)s@cci.lbl.gov/phenix/trunk@11446']
 
 class phenix_html(SourceModule):
   module = 'phenix_html'
