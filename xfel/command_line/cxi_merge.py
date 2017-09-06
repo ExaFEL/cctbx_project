@@ -1649,27 +1649,27 @@ class scaling_manager (intensity_data) :
       slope = 1.0
       offset = 0.0
 
-    if db_mgr is None: return unpack(MINI.x) # special exit for two-color indexing
+    if db_mgr is not None: # special condition, pending implementation of MPI database backend
 
-    frame_id_0_base = PF.insert_frame_call(locals())
+      frame_id_0_base = PF.insert_frame_call(locals())
 
-    observations_original_index_indices = observations_original_index.indices()
-    xypred = result["mapped_predictions"][0]
-    indices = flex.size_t([pair[1] for pair in matches.pairs()])
+      observations_original_index_indices = observations_original_index.indices()
+      xypred = result["mapped_predictions"][0]
+      indices = flex.size_t([pair[1] for pair in matches.pairs()])
 
-    sel_observations = flex.intersection(
-      size=observations.data().size(),
-      iselections=[indices])
-    set_original_hkl = observations_original_index_indices.select(
-      flex.intersection(
-        size=observations_original_index_indices.size(),
-        iselections=[indices]))
-    set_xypred = xypred.select(
-      flex.intersection(
-        size=xypred.size(),
-        iselections=[indices]))
+      sel_observations = flex.intersection(
+        size=observations.data().size(),
+        iselections=[indices])
+      set_original_hkl = observations_original_index_indices.select(
+        flex.intersection(
+          size=observations_original_index_indices.size(),
+          iselections=[indices]))
+      set_xypred = xypred.select(
+        flex.intersection(
+          size=xypred.size(),
+          iselections=[indices]))
 
-    kwargs = {'hkl_id_0_base': [pair[0] for pair in matches.pairs()],
+      kwargs = {'hkl_id_0_base': [pair[0] for pair in matches.pairs()],
               'i': observations.data().select(sel_observations),
               'sigi': observations.sigmas().select(sel_observations),
               'detector_x': [xy[0] for xy in set_xypred],
@@ -1680,7 +1680,7 @@ class scaling_manager (intensity_data) :
               'original_k': [hkl[1] for hkl in set_original_hkl],
               'original_l': [hkl[2] for hkl in set_original_hkl]}
 
-    db_mgr.insert_observation(**kwargs)
+      db_mgr.insert_observation(**kwargs)
 
     print >> out, "For %d reflections, got slope %f, correlation %f" % \
         (data.n_obs - data.n_rejected, slope, corr)
