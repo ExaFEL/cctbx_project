@@ -1,16 +1,13 @@
 # LIBTBX_SET_DISPATCHER_NAME mpi.merge
 from __future__ import division
-from xfel.command_line.cxi_merge import run
 import sys,time
 from xfel.command_line import cxi_merge
-from libtbx import Auto
-from scitbx import matrix
 
 from xfel.command_line.single_node_merge import get_observations
 cxi_merge.get_observations = get_observations
 
 from xfel.command_line.single_node_merge import scaling_manager as scaling_manager_base
-class scaling_manager(scaling_manager_base):
+class scaling_manager_mpi(scaling_manager_base):
 
   def scale_all (self, file_names) :
     tar_list,integration_pickle_names = file_names
@@ -22,28 +19,19 @@ class scaling_manager(scaling_manager_base):
     else:
       from xfel.cxi.merging_database_fs import manager
 
-    db_mgr = manager(self.params)
-    db_mgr.initialize_db(self.miller_set.indices())
+    #db_mgr = manager(self.params)
+    #db_mgr.initialize_db(self.miller_set.indices())
+    db_mgr = None
 
-    # Unless the number of requested processes is greater than one,
-    # try parallel multiprocessing on a parallel host.  Block until
-    # all database commands have been processed.
+    # MPI
     nproc = self.params.nproc
-    if (nproc is None) or (nproc is Auto):
-      import libtbx.introspection
-      nproc = libtbx.introspection.number_of_processors()
+    assert nproc >= 1
     if nproc > 1:
-      try :
-        import multiprocessing
-        self._scale_all_parallel(tar_list, db_mgr)
-      except ImportError, e :
-        print >> self.log, \
-          "multiprocessing module not available (requires Python >= 2.6)\n" \
-          "will scale frames serially"
-        self._scale_all_serial(tar_list, db_mgr)
+      self._scale_all_parallel(tar_list, db_mgr)
     else:
       self._scale_all_serial(tar_list, db_mgr)
-    db_mgr.join()
+    # done
+    # db_mgr.join()
 
     t2 = time.time()
     print >> self.log, ""
@@ -82,39 +70,19 @@ class scaling_manager(scaling_manager_base):
       self.errors_from_residuals()
 
   def _scale_all_parallel (self, file_names, db_mgr) :
-    import multiprocessing
-    import libtbx.introspection
-
-    nproc = self.params.nproc
-    if (nproc is None) or (nproc is Auto) :
-      nproc = libtbx.introspection.number_of_processors()
-
-    # Input files are supplied to the scaling processes on demand by
-    # means of a queue.
-    #
-    # XXX The input queue may need to either allow non-blocking
-    # put():s or run in a separate process to prevent the procedure
-    # from blocking here if the list of file paths does not fit into
-    # the queue's buffer.
-    input_queue = multiprocessing.Manager().JoinableQueue()
-    for file_name in file_names:
-      print file_name
-      input_queue.put(file_name)
-    pool = multiprocessing.Pool(processes=nproc)
-    # Each process accumulates its own statistics in serial, and the
-    # grand total is eventually collected by the main process'
-    # _add_all_frames() function.
-    for i in xrange(nproc) :
-      sm = scaling_manager(self.miller_set, self.i_model, self.params)
-      pool.apply_async(
-        func=sm,
-        args=[input_queue, db_mgr],
-        callback=self._add_all_frames)
-    pool.close()
-    pool.join()
-
-    # Block until the input queue has been emptied.
-    input_queue.join()
+    from mpi4py import MPI
+    comm = MPI.COMM_SELF.Spawn("mpi.worker2", args=[], #libtbx.python",args=['worker2.py'],
+                           maxprocs=self.params.nproc)
+    transmitted_info = dict(file_names=file_names,
+                            miller_set=self.miller_set,
+                            model = self.i_model,
+                            params = self.params )
+    comm.bcast(transmitted_info, root = MPI.ROOT)
+    reports = comm.gather("no data",root=MPI.ROOT)
+    print "reports",reports
+    comm.Disconnect()
+    for worker_sm in reports:
+      self._add_all_frames(worker_sm)
 
   def _scale_all_serial (self, tar_list, db_mgr) :
     """
@@ -124,29 +92,9 @@ class scaling_manager(scaling_manager_base):
     self.tar_to_scale_frame_adapter(tar_list, db_mgr)
     return (self)
 
-  def __call__ (self, input_queue, db_mgr) :
-    """ Scale frames sequentially within the current process.  The
-    return value is picked up by the callback.  See also
-    self.scale_all_serial()"""
-    from Queue import Empty
-
-    try :
-      while True:
-        try:
-          file_name = input_queue.get_nowait()
-        except Empty:
-          return self
-        self.tar_to_scale_frame_adapter(tar_list=[file_name,], db_mgr=db_mgr)
-        input_queue.task_done()
-
-    except Exception, e :
-      print >> self.log, str(e)
-      return None
-
-cxi_merge.scaling_manager = scaling_manager
+cxi_merge.scaling_manager = scaling_manager_mpi
 
 if (__name__ == "__main__"):
-  result = run(args=sys.argv[1:])
+  result = cxi_merge.run(args=sys.argv[1:])
   if result is None:
     sys.exit(1)
-
