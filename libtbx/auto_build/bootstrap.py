@@ -779,6 +779,13 @@ class geostd_module(SourceModule):
                ]
   authenticated = anonymous
 
+class ncdist_module(SourceModule):
+  module = 'ncdist'
+  anonymous = ['git',
+               'git@github.com:yayahjb/ncdist.git',
+               'https://github.com/yayahjb/ncdist.git',
+               'https://github.com/yayahjb/ncdist/archive/master.zip']
+
 class cbflib_module(SourceModule):
   module = 'cbflib'
   anonymous = ['git', '-b sept_sprint',
@@ -1594,6 +1601,7 @@ class CCIBuilder(Builder):
   # Checkout these codebases
   CODEBASES = [
     'cbflib',
+    'ncdist',
     'cctbx_project',
     'gui_resources',
     'ccp4io_adaptbx',
