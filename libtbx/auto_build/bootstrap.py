@@ -1512,21 +1512,21 @@ class Builder(object):
     #  dispatcher_opts.append("--ignore_missing_dirs")
     # FIXME this will happen regardless of whether the GUI modules are being
     # distributed or not - will this be problematic?
-    self.add_step(self.shell(
-      name='gui dispatcher',
-      command=[
-        self.python_base, #'python',
-        self.opjoin("..",
-                    'modules',
-                    'cctbx_project',
-                    'libtbx',
-                    'auto_build',
-                    'write_gui_dispatcher_include.py'),
-        '--prologue=%s' % prologue,
-        #"--epilogue=%s"
-      ] + dispatcher_opts,
-      workdir=['build']
-    ))
+    # self.add_step(self.shell(
+    #   name='gui dispatcher',
+    #   command=[
+    #     self.python_base, #'python',
+    #     self.opjoin("..",
+    #                 'modules',
+    #                 'cctbx_project',
+    #                 'libtbx',
+    #                 'auto_build',
+    #                 'write_gui_dispatcher_include.py'),
+    #     '--prologue=%s' % prologue,
+    #     #"--epilogue=%s"
+    #   ] + dispatcher_opts,
+    #   workdir=['build']
+    # ))
 
   def add_configure(self):
     self.add_step(self.shell(command=[
@@ -1598,8 +1598,8 @@ class CCIBuilder(Builder):
     'gui_resources',
     'ccp4io_adaptbx',
     'annlib_adaptbx',
-    #'tntbx',
-    #'clipper'
+    'tntbx',
+    'clipper'
   ]
   CODEBASES_EXTRA = []
   # Copy these sources from cci.lbl.gov
