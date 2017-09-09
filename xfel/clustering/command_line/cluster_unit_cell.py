@@ -41,7 +41,7 @@ if __name__ == "__main__":
   parser.add_argument('dirs', type=str, nargs='+',
                       help='One or more paths to directories, integration pickles or DIALS experiment lists.')
   parser.add_argument('--paths', action='store_true',
-                      help='Interpret the arguments as complete paths to pickles, not directories.')
+                      help='Interpret the arguments as complete paths to pickles or tarred pickles, not directories.')
   parser.add_argument('--dials', action='store_true',
                       help='Interpret the arguments as DIALS format pickles and jsons.')
   parser.add_argument('-t', type=float, default=5000,

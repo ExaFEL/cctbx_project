@@ -82,7 +82,7 @@ class SingleFrame(InputFrame):
       self.miller_array = d['observations'][crystal_num]
       self.mapped_predictions = d['mapped_predictions'][crystal_num]
       # Image pickle info
-      self.path = path
+      self.path = path or d['path']
       self.name = filename
       # Unit cell info
       self.crystal_system = self.miller_array.crystal_symmetry()\

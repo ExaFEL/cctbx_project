@@ -216,14 +216,17 @@ class Cluster:
     else:
       if raw_input is not None:
         pickle_list.extend(raw_input)
-      for path in pickle_list:
-        this_frame = SingleFrame(path, os.path.basename(path), **kwargs)
+      print "There are %d input files"%(len(pickle_list))
+      from xfel.command_line.print_pickle import generate_data_from_streams
+      for data_dict in generate_data_from_streams(pickle_list):
+        this_frame = SingleFrame(dicti=data_dict, **kwargs)
         if hasattr(this_frame, 'miller_array'):
           data.append(this_frame)
           if done():
             break
         else:
           logging.info('skipping file {}'.format(os.path.basename(path)))
+      print "%d lattices will be analyzed"%(len(data))
 
     return cls(data, _prefix, _message)
 
