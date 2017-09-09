@@ -779,6 +779,13 @@ class geostd_module(SourceModule):
                ]
   authenticated = anonymous
 
+class cluster_regression_module(SourceModule):
+  module = 'cluster_regression'
+  anonymous = ['git',
+               'git@github.com:cctbx-xfel/cluster_regression.git',
+               'https://github.com/cctbx-xfel/cluster_regression.git',
+               'https://github.com/cctbx-xfel/cluster_regression/archive/master.zip']
+
 class ncdist_module(SourceModule):
   module = 'ncdist'
   anonymous = ['git',
@@ -1740,6 +1747,7 @@ class LABELITBuilder(CCIBuilder):
 class XFELBuilder(CCIBuilder):
   CODEBASES_EXTRA = [
     'dials',
+    'cluster_regression',
     #'labelit',
     #'cxi_xdr_xes'
   ]
