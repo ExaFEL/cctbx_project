@@ -779,6 +779,13 @@ class geostd_module(SourceModule):
                ]
   authenticated = anonymous
 
+class exafel_project_module(SourceModule):
+  module = 'exafel_project'
+  anonymous = ['git',
+               'git@github.com:ExaFEL/exafel_project.git',
+               'https://github.com/ExaFEL/exafel_project.git',
+               'https://github.com/ExaFEL/exafel_project/archive/master.zip']
+
 class cluster_regression_module(SourceModule):
   module = 'cluster_regression'
   anonymous = ['git',
@@ -1747,12 +1754,15 @@ class LABELITBuilder(CCIBuilder):
 class XFELBuilder(CCIBuilder):
   CODEBASES_EXTRA = [
     'dials',
+    'exafel_project',
     'cluster_regression',
     #'labelit',
     #'cxi_xdr_xes'
   ]
   LIBTBX_EXTRA = [
     'dials',
+    'exafel_project',
+    'cluster_regression',
     #'labelit',
     'xfel',
     #'cxi_xdr_xes',
