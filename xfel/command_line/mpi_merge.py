@@ -19,9 +19,8 @@ class scaling_manager_mpi(scaling_manager_base):
     else:
       from xfel.cxi.merging_database_fs import manager
 
-    #db_mgr = manager(self.params)
-    #db_mgr.initialize_db(self.miller_set.indices())
-    db_mgr = None
+    db_mgr = manager(self.params)
+    db_mgr.initialize_db(self.miller_set.indices())
 
     # MPI
     nproc = self.params.nproc
@@ -31,7 +30,7 @@ class scaling_manager_mpi(scaling_manager_base):
     else:
       self._scale_all_serial(tar_list, db_mgr)
     # done
-    # db_mgr.join()
+    db_mgr.join()
 
     t2 = time.time()
     print >> self.log, ""

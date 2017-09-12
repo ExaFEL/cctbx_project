@@ -14,10 +14,14 @@ sm = scaling_manager_mpi(received_info["miller_set"],
                          received_info["model"],
                          received_info["params"])
 
+assert sm.params.backend == 'MySQL' # only option that makes sense
+from xfel.cxi.merging_database import manager
+db_mgr = manager(sm.params)
+
 for ix in xrange(len(file_names)):
   if ix%size == rank:
     print "Rank %d processing %s"%(rank, file_names[ix])
-    sm.tar_to_scale_frame_adapter(tar_list=[file_names[ix],], db_mgr=None)
+    sm.tar_to_scale_frame_adapter(tar_list=[file_names[ix],], db_mgr=db_mgr)
 
 comm.gather(sm, root=0)
 comm.Disconnect()
