@@ -119,6 +119,7 @@ class manager (manager_base):
                            db = self.params.mysql.database,compress=False)
       cursor = db.cursor()
       cursor.execute("use %s;"%self.params.mysql.database)
+      db.commit()
 
       return db
     except Exception:
@@ -145,8 +146,9 @@ class manager (manager_base):
       query.write(firstcomma); firstcomma=","
       query.write("('%d','%d','%d')"%(item[0],item[1],item[2]))
     query.write(" ;")
+    print query.getvalue()
     cursor.execute( query.getvalue() )
-
+    db.commit()
 
   def _insert(self, table, **kwargs):
     """The _insert() function generates the SQL command and parameter
@@ -178,6 +180,7 @@ class manager (manager_base):
       **kwargs)
 
     cursor.execute(sql, parameters[0])
+    db.commit()
 
     # Entry in the observation table is zero-based.
     return cursor.lastrowid - 1
@@ -200,6 +203,7 @@ class manager (manager_base):
     except TypeError:
       parameters = [kwargs.values()]
     cursor.executemany(query, parameters)
+    db.commit()
 
 
   def join(self):
