@@ -186,6 +186,7 @@ class manager (manager_base):
 
 
   def insert_observation(self, **kwargs):
+    return
     db = self.connection()
     cursor = db.cursor()
 

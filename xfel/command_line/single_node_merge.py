@@ -1,6 +1,7 @@
 # LIBTBX_SET_DISPATCHER_NAME singlenode.merge
 from __future__ import division
 from xfel.command_line.cxi_merge import run
+from xfel.command_line.cxi_merge import OutlierCellError, WrongBravaisError
 import sys,glob,os,math,time
 from xfel.command_line import cxi_merge
 from cctbx.array_family import flex
