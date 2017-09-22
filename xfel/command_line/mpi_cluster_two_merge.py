@@ -1,4 +1,4 @@
-# LIBTBX_SET_DISPATCHER_NAME mpi.cluster2_merge
+# LIBTBX_SET_DISPATCHER_NAME mpi.cluster_two_merge
 from __future__ import division
 import sys,time,os
 from xfel.command_line import cxi_merge
