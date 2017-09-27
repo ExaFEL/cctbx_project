@@ -27,6 +27,7 @@ import sys
 import glob
 from scitbx import matrix
 op = os.path
+from numba import jit
 
 from xfel.cxi.merging_database import mysql_master_phil
 master_phil="""
@@ -778,6 +779,7 @@ class scaling_manager (intensity_data) :
         self.add_frame(scaled)
     return (self)
 
+  @jit
   def add_frame (self, data) :
     """
     Combine the scaled data from a frame with the current overall dataset.
@@ -833,6 +835,7 @@ class scaling_manager (intensity_data) :
     self.corr_values.append(data.corr)
     self.wavelength.append(data.wavelength)
 
+  @jit
   def _add_all_frames (self, data) :
     """The _add_all_frames() function collects the statistics accumulated
     in @p data by the individual scaling processes in the process

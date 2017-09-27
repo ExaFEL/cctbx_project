@@ -3,6 +3,7 @@
 # $Id$
 
 from __future__ import division
+from numba import jit
 
 from cctbx.array_family import flex
 
@@ -148,6 +149,7 @@ class manager (manager_base):
     kwargs['Astar_7'], kwargs['Astar_8'], kwargs['Astar_9'] = Astar
     return self.insert_frame(**kwargs)
 
+  @jit
   def insert_frame(self, **kwargs):
     order = []
     if self.params.postrefinement.enable==True and \
@@ -215,7 +217,8 @@ class manager (manager_base):
         # If the key does not match, put it back in the queue for
         # someone else to pick up.
         self._db_results_queue.put(item)
-
+  
+  @jit
   def insert_observation(self, **kwargs):
     order = []
     order_dict = {'hkl_id_0_base': 0,
@@ -245,7 +248,7 @@ class manager (manager_base):
     self._db_results_queue.join()
     self._semaphore.acquire()
 
-
+  @jit
   def read_indices(self):
     millers = dict(merged_asu_hkl=flex.miller_index())
     stream = open(self.params.output.prefix + '_miller.db', 'r')
@@ -255,7 +258,7 @@ class manager (manager_base):
     stream.close()
     return millers
 
-
+  @jit
   def read_observations(self):
     observations = {'hkl_id': flex.int(),
                     'i': flex.double(),

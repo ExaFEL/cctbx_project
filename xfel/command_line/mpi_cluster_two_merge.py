@@ -5,6 +5,7 @@ from xfel.command_line import cxi_merge
 from libtbx.utils import Usage, multi_out
 from cctbx.array_family import flex
 from libtbx import easy_pickle
+from numba import jit
 
 from xfel.command_line.single_node_merge import get_observations
 
