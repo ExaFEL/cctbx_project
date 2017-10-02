@@ -22,14 +22,7 @@ def mpi_merge_op(data0, data1, datatype):
 
   for key in data0.failure_modes.keys():
     data0.failure_modes[key] = data0.failure_modes.get(key,0) + data1.failure_modes[key]
-  '''
-  for item in data0:
-      if item in data1:
-          data0[item] += data1[item]
-      else:
-          data0[item] = data1[item]
-  return data0
-  '''
+
   for index, isigi in data1.ISIGI.iteritems() :
     if (index in data0.ISIGI):
       data0.ISIGI[index] += isigi
@@ -53,9 +46,6 @@ def mpi_merge_op(data0, data1, datatype):
 
   data0.uc_values.add_cells(data1.uc_values)
   return data0
-
-
-
 
 #Redefining the merging function from cxi_merge.py
 def _add_all_frames_mpi (self, data) :
@@ -98,12 +88,6 @@ def _add_all_frames_mpi (self, data) :
   self.uc_values.add_cells(data.uc_values)
 #Redefine the merging function
 scaling_manager_base._add_all_frames = _add_all_frames_mpi
-
-
-
-
-
-
 
 class scaling_manager_mpi(scaling_manager_base):
 
@@ -358,58 +342,18 @@ if (__name__ == "__main__"):
       print "SCALER_WORKER END RANK=%d TIME=%f TAR=%d"%(rank,tt(),ix)
   print "SCALER_WORKERS END RANK=%d TIME=%f"%(rank,tt())
   scaler_worker.finished_db_mgr = db_mgr
+
   # might want to clean up a bit before returning
+  del scaler_worker.log
+#  del scaler_worker.params
+  del scaler_worker.miller_set
+  del scaler_worker.i_model
+  del scaler_worker.reverse_lookup
 
-  # gather reports and all add together
-  offset = size//2
+  scaler_workers = comm.reduce(scaler_worker, op=merge_op, root=0)
+  MPI.Finalize()
   comm.Barrier()
 
-  #if rank==0:
-  print "ISIGI_LEN=%s START RANK=%d TIME=%f"%(len(scaler_worker.ISIGI.values()),rank,tt())
-  #print "MERGE_REDUCE=%d START RANK=%d TIME=%f"%(offset,rank,tt())
-#  scaler_workers = comm.allreduce(scaler_worker, op=merge_op)
-  scaler_workers = comm.reduce(scaler_worker, op=merge_op, root=MPI.root)
-  #print "MERGE_REDUCE=%d STOP RANK=%d TIME=%f"%(offset,rank,tt())
-  print "ISIGI_LEN=%s STOP RANK=%d TIME=%f"%(len(scaler_worker.ISIGI.values()),rank,tt())
-  comm.Barrier()
-
-
-  #import pickle
-  #pickle.dump( scaler_workers.ISIGI, open( "dict1.p", "wb" ) )
-  #print comm.rank, scaler_worker
-  #from IPython import embed; embed()
-  #exit()
-  '''
-  while offset >= 1:
-    print "OFFSET=%d START RANK=%d TIME=%f"%(offset,rank,tt())
-    if rank >= offset and rank < offset*2:
-      print "SEND START RANK=S%d,R%d TIME=%f"%(rank,rank-offset,tt())
-      comm.send(scaler_worker, dest=rank-offset)
-      print "SEND END RANK=S%d,R%d TIME=%f"%(rank,rank-offset,tt())
-    elif rank < offset:
-      print "RECV START RANK=R%d,S%d TIME=%f"%(rank,rank+offset,tt())
-      data = comm.recv(source=rank+offset)
-      print "RECV END RANK=R%d,S%d TIME=%f"%(rank,rank+offset,tt())
-      ireport = 0
-      #from IPython import embed; embed() 
-      for j,item in enumerate([data]):
-        print "REPORT START RANK=%d TIME=%f"%(j,tt())
-        print "processing %d calls from report %d"%(len(item.finished_db_mgr.sequencer),ireport); ireport += 1
-        scaler_worker._add_all_frames(item)
-        print "REPORT MID RANK=%d TIME=%f"%(j,tt())
-        if rank==-1:
-          for call_instance in item.finished_db_mgr.sequencer:
-            if call_instance["call"] == "insert_frame":
-              frame_id_zero_base = scaler_master.master_db_mgr.insert_frame(**call_instance["data"])
-            elif call_instance["call"] == "insert_observation":
-              call_instance["data"]['frame_id_0_base'] = [frame_id_zero_base] * len(call_instance["data"]['frame_id_0_base'])
-              scaler_worker.master_db_mgr.insert_observation(**call_instance["data"])
-        print "REPORT END RANK=%d TIME=%f"%(j,tt())
-    else:
-      print "IDLE WORKER RANK=%d TIME=%f"%(rank,tt())
-    comm.Barrier()
-    offset=offset/2
-  '''
   if rank == 0:
     print "ISIGI_LEN=%s START RANK=%d TIME=%f"%(len(scaler_master.ISIGI.values()),rank,tt())
     scaler_master._add_all_frames(scaler_workers)
