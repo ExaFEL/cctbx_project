@@ -3,6 +3,8 @@
 #include <scitbx/array_family/boost_python/flex_wrapper.h>
 #include <scitbx/serialization/single_buffered.h>
 #include <scitbx/matrix/transpose_multiply.h>
+#include <scitbx/array_family/accessors/c_grid.h>
+#include <scitbx/matrix/outer_product.h>
 #include <scitbx/math/utils.h>
 #include <scitbx/vec2.h>
 #include <scitbx/mat2.h>
@@ -83,6 +85,24 @@ namespace {
     for(std::size_t i=0;i<result_size;i++) {
       result.push_back(vec2<double>(d));
       d += 2;
+    }
+    return new flex<vec2<double> >::type(result, result.size());
+  }
+
+  flex<vec2<double> >::type*
+  from_parts(
+    af::const_ref<double> const& x, af::const_ref<double> const& y)
+  {
+    //! Constructor of vec2<double> from parts
+    /*! Accepts indivdual arrays representing vectors of x & coordinates, returns vec2.
+     */
+    SCITBX_ASSERT(x.size() == y.size());
+    std::size_t result_size = x.size();
+    af::shared<vec2<double> > result((af::reserve(result_size)));
+    const double* d1 = x.begin();
+    const double* d2 = y.begin();
+    for(std::size_t i=0;i<result_size;i++) {
+      result.push_back(vec2<double>(*d1++,*d2++));
     }
     return new flex<vec2<double> >::type(result, result.size());
   }
@@ -335,6 +355,38 @@ namespace {
     return std::sqrt(sum_length_sq / lhs.size());
   }
 
+  template <typename FloatType>
+  void
+  distance_matrix_detail(
+    FloatType* result,
+    af::const_ref<vec2<FloatType> > const& lhs,
+    af::const_ref<vec2<FloatType> > const& rhs)
+  {
+    for(unsigned i=0;i<lhs.size();i++) {
+      vec2<FloatType> li = lhs[i];
+      for(unsigned j=0;j<rhs.size();j++) {
+        vec2<FloatType> difference = li - rhs[j];
+        *result++ = std::sqrt(difference*difference);
+      }
+    }
+  }
+
+  af::versa<double, af::c_grid<2> >
+  distance_matrix(
+    af::const_ref<vec2<double> > const& lhs,
+    af::const_ref<vec2<double> > const& rhs)
+  {
+    //! Distance matrix between vec2<double> and another vec2<double>
+    /*! Returns 2D matrix, element ij is sqrt[(LHS[i] - RHS[j]).dot(LHS[i] - RHS[j])]
+     */
+    af::versa<double, af::c_grid<2> >
+      result(
+        af::c_grid<2>(lhs.size(), rhs.size()),
+        af::init_functor_null<double>());
+    distance_matrix_detail(result.begin(), lhs, rhs);
+    return result;
+  }
+
 } // namespace <anonymous>
 
 namespace boost_python {
@@ -356,6 +408,7 @@ namespace boost_python {
         2*pickle_size_per_element<double>::value>())
       .def("__init__", make_constructor(join))
       .def("__init__", make_constructor(from_double))
+      .def("__init__", make_constructor(from_parts))
       .def("__init__", make_constructor(array_indices_as_double_from_array_focus_dimensions))
       .def("as_double", as_double)
       .def("add_selected",
@@ -397,6 +450,7 @@ namespace boost_python {
       .def("max_distance", max_distance)
       .def("rms_difference", rms_difference)
       .def("rms_length", rms_length)
+      .def("distance_matrix", distance_matrix)
       .def("parts", parts)
     ;
   }
