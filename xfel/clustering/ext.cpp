@@ -7,6 +7,7 @@
 #include <scitbx/array_family/shared.h>
 #include <scitbx/array_family/versa.h>
 #include <scitbx/array_family/accessors/c_grid.h>
+#include <algorithm>
 
 namespace sx_clustering {
   void foo2(){
@@ -16,8 +17,6 @@ namespace sx_clustering {
   struct Rodriguez_Laio_clustering_2014 {
 
     Rodriguez_Laio_clustering_2014( ):rho_set(false){}
-
-    Rodriguez_Laio_clustering_2014(double d_c):d_c(d_c),rho_set(false){}
 
     Rodriguez_Laio_clustering_2014(
       scitbx::af::flex_double distance_matrix,
@@ -63,6 +62,34 @@ namespace sx_clustering {
       return delta;
     }
 
+    void cluster_assignment(scitbx::af::shared<std::size_t> rho_order,
+                            scitbx::af::shared<int> cluster_id){
+      //! one-pass assignment of clusters
+      /*! assign each point to its nearest neighbor (Dij) of higher density
+          the cluster_id input array is modified, the return type is void
+       */
+      scitbx::af::flex_double::const_iterator B = distance_matrix.begin();
+      scitbx::af::flex_double::const_iterator E = distance_matrix.end();
+      scitbx::af::flex_double::const_iterator max_Dij = std::max_element(B,E);
+      const double* Dij = distance_matrix.begin();
+      std::size_t init_value = std::numeric_limits<std::size_t>().max(); //None
+      for (int p=0; p < NN; ++p){
+        int item_idx = rho_order[p];
+        if (cluster_id[item_idx] == -1){ // still unassigned
+          double trial_Dij = *max_Dij;
+          std::size_t i_neighbor = init_value;
+          for (int q=0; q < p; ++q){
+            double examined_distance = Dij[item_idx*NN + rho_order[q]];
+            if ( examined_distance < trial_Dij) {
+              i_neighbor = rho_order[q];
+              trial_Dij = examined_distance;
+            }
+          }
+          SCITBX_ASSERT(i_neighbor != init_value);
+          cluster_id[item_idx] = cluster_id[i_neighbor];
+        }
+      }
+    }
 
     public:
       scitbx::af::shared<std::size_t> rho;
@@ -90,12 +117,13 @@ namespace boost_python { namespace {
 
     class_<Rodriguez_Laio_clustering_2014>("Rodriguez_Laio_clustering_2014",no_init)
       .def(init<>())
-      .def(init<double >((arg_("d_c"))))
       .def(init<scitbx::af::flex_double, double >(
           (arg_("distance_matrix"),arg_("d_c"))))
       .def("get_rho",&Rodriguez_Laio_clustering_2014::get_rho)
       .def("get_delta",&Rodriguez_Laio_clustering_2014::get_delta,(
           (arg_("rho_order"),arg_("delta_i_max"))))
+      .def("cluster_assignment",&Rodriguez_Laio_clustering_2014::cluster_assignment,(
+          (arg_("rho_order"),arg_("cluster_id"))))
     ;
 
     def("foo2",&sx_clustering::foo2);
