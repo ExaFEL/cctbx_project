@@ -44,8 +44,29 @@ namespace sx_clustering {
       return rho;
     }
 
+    scitbx::af::shared<double>
+    get_delta(scitbx::af::shared<std::size_t> rho_order, double delta_i_max){
+      //! delta_i is measured by computing the minimum distance between the point i
+      /*! and any other point with higher OR EQUAL density (emphasis mine)
+       */
+      delta = scitbx::af::shared<double>(NN,delta_i_max);
+      const double* Dij = distance_matrix.begin();
+      for (int p=1; p < NN; ++p){ // first iteration through rho order
+        int i = rho_order[p];
+        for (int q=0; q < p; ++q){
+          int j = rho_order[q];
+          if (rho[j] >= rho[i] && Dij[i*NN+j] < delta[i]) {
+            delta[i] = Dij[i*NN+j];
+          }
+        }
+      }
+      return delta;
+    }
+
+
     public:
       scitbx::af::shared<std::size_t> rho;
+      scitbx::af::shared<double> delta;
 
     private:
       scitbx::af::flex_double distance_matrix;
@@ -73,6 +94,8 @@ namespace boost_python { namespace {
       .def(init<scitbx::af::flex_double, double >(
           (arg_("distance_matrix"),arg_("d_c"))))
       .def("get_rho",&Rodriguez_Laio_clustering_2014::get_rho)
+      .def("get_delta",&Rodriguez_Laio_clustering_2014::get_delta,(
+          (arg_("rho_order"),arg_("delta_i_max"))))
     ;
 
     def("foo2",&sx_clustering::foo2);
