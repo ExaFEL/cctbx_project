@@ -91,6 +91,25 @@ namespace sx_clustering {
       }
     }
 
+    scitbx::af::shared<bool>
+    get_border(scitbx::af::shared<int> cluster_id){
+      //! find border
+      /*! defined as points that are within d_c of those in another cluster
+       */
+      scitbx::af::shared<bool> result(NN,false);
+      const double* Dij = distance_matrix.begin();
+      for (int i=0; i < NN; ++i){
+        for (int j=i+1; j < NN; ++j){
+          if (Dij[i*NN+j] < d_c){
+            if (cluster_id[i] != cluster_id[j]){
+              result[i]=true; result[j]=true;
+            }
+          }
+        }
+      }
+      return result;
+    }
+
     public:
       scitbx::af::shared<std::size_t> rho;
       scitbx::af::shared<double> delta;
@@ -124,6 +143,8 @@ namespace boost_python { namespace {
           (arg_("rho_order"),arg_("delta_i_max"))))
       .def("cluster_assignment",&Rodriguez_Laio_clustering_2014::cluster_assignment,(
           (arg_("rho_order"),arg_("cluster_id"))))
+      .def("get_border",&Rodriguez_Laio_clustering_2014::get_border,(
+          (arg_("cluster_id"))))
     ;
 
     def("foo2",&sx_clustering::foo2);
