@@ -36,11 +36,9 @@ class FormatXTC(FormatMultiImage,FormatStill,Format):
     try:
       from psana import DataSource, DetNames, Detector
       try:
-        user_input = parse(file_name=image_file)
+        params = FormatXTC.params_from_phil(image_file)
       except Exception,e:
         return False
-      working_phil = locator_scope.fetch(sources=[user_input])
-      params = working_phil.extract()
       if params.locator is None:
         return False
       else:
@@ -69,6 +67,13 @@ class FormatXTC(FormatMultiImage,FormatStill,Format):
         FormatXTC._src = names[int(raw_input("Please Enter name of detector numbered 1 through %d : "%(len(names))))-1][0]
       understood = True
 
+  @staticmethod
+  def params_from_phil(image_file):
+    try:
+      user_input = parse(file_name = image_file)
+      working_phil = locator_scope.fetch(sources = [user_input])
+      params = working_phil.extract()
+      return params
     except Exception,e:
       return False
     return understood
