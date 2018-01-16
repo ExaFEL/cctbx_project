@@ -34,12 +34,13 @@ xtc_phil_str = '''
     find_spots = True
       .type = bool
       .help = Whether to do spotfinding. Needed for indexing/integration
-    dataset_name = None
+    data_source_name = None
       .type = str
       .expert_level = 2
       .help = This is to specify which datasource should be used for processing data at LCLS \
-              Format is exp=<experiment_name>:run=<run_number>:<file_format> \
+              Format is exp=<experiment_name>:run=<run_number>:<mode> \
               eg. exp=mfxo1916:run=20:xtc
+              More info at https://confluence.slac.stanford.edu/display/PSDM/Manual#Manual-Datasetspecification
     hit_finder{
       enable = True
         .type = bool
@@ -612,7 +613,7 @@ class InMemScript(DialsProcessScript):
     if params.input.cfg is not None:
       psana.setConfigFile(params.input.cfg)
     # all cores in stripe mode and the master in client-server mode read smd
-    if params.dispatch.dataset_name is None:
+    if params.dispatch.datasource_name is None:
       dataset_name = "exp=%s:run=%s:%s"%(params.input.experiment,params.input.run_num,'smd')
     else:
       dataset_name = params.dispatch.dataset_name
@@ -636,7 +637,7 @@ class InMemScript(DialsProcessScript):
         ds = psana.DataSource(dataset_name_client)
 
     else:
-      # for stripe, all cores read smd
+      dataset_name = params.dispatch.data_source_name
       ds = psana.DataSource(dataset_name)
     if params.format.file_format == "cbf":
       self.psana_det = psana.Detector(params.input.address, ds.env())

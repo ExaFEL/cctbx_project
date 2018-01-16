@@ -81,6 +81,17 @@ class FormatXTCCspad(FormatXTC):
   def get_scan(self, index=None):
       return None
 
+# Delete later
+  def get_mask(self, index=None, goniometer=None):
+    return None
+
+# Delete later
+  def get_detectorbase(self, index=None):
+    print 'get_detectorbase Overload!'
+# Delete later
+  def get_image_file(self, index=None):
+    print 'get_image_file Overload!'
+#XXX Implement recursive version 
   def _detector(self, index=None):
     import psana
     from xfel.cftbx.detector.cspad_cbf_tbx import read_slac_metrology
