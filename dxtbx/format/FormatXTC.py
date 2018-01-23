@@ -40,11 +40,11 @@ class FormatXTC(FormatMultiImage,FormatStill,Format):
         from the user '''
     try:
       from psana import DataSource, DetNames
-    except ImportError,e:
+    except ImportError:
       return False
     try:
       params = FormatXTC.params_from_phil(image_file)
-    except Exception,e:
+    except Exception:
       return False
     if params.data_source is None:
       return False
@@ -81,11 +81,7 @@ class FormatXTC(FormatMultiImage,FormatStill,Format):
       working_phil = locator_scope.fetch(sources = [user_input])
       params = working_phil.extract()
       return params
-    except Exception,e:
-<<<<<<< HEAD
-      return False
-    return understood
-=======
+    except Exception:
       return None
 
   def _get_datasource(self, image_file):
@@ -97,7 +93,6 @@ class FormatXTC(FormatMultiImage,FormatStill,Format):
     else:
       img = params.data_source
     return DataSource(img)
->>>>>>> changes to address code review meeting concerns on 1-16
 
 if __name__ == '__main__':
   import sys

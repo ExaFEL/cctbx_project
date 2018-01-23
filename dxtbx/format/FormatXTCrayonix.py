@@ -64,7 +64,8 @@ class FormatXTCrayonix(FormatXTC):
       understood = True
     except IOError,e:
       return False
-    return understood
+    except Exception:
+      return False
 
   def get_raw_data(self,index):
     import psana
