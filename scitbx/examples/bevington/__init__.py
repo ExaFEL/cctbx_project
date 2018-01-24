@@ -23,3 +23,10 @@ class _(boost.python.injector, ext.non_linear_ls_eigen_wrapper):
     print >>S,"Normal matrix non-zeros   %12ld, %6.2f%%"%(nonZeros,percentNZ)
     print >>S,"Cholesky factor non-zeros %12ld, %6.2f%%"%(LnonZeros,LpercentNZ)
     return S.getvalue()
+
+
+#try:
+ext = boost.python.import_ext("scitbx_examples_strumpack_solver_ext")
+from scitbx_examples_strumpack_solver_ext import *
+#except Exception, e:
+#  pass
