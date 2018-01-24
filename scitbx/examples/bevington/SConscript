@@ -66,8 +66,8 @@ try:
         SHCXX="mpic++",
         SHLINK="mpic++",
       )
-      env_scitbx_ex_strumpack_boost_python_ext.Append(SHCCFLAGS=["-std=c++11"],
-        LIBS=["strumpack", "scotch", "metis", "parmetis", "scotcherr", "mpi",], 
+      env_scitbx_ex_strumpack_boost_python_ext.Append(SHCCFLAGS=["-std=c++11","-g"],
+        LIBS=["strumpack", "scotch", "metis", "parmetis", "scotcherr", "mpi","stdc++"], 
         LIBPATH=os.path.abspath(os.path.join(libtbx.env.dist_path("boost"),"../../strumpack_build/lib"))
       )
       env_scitbx_ex_strumpack_boost_python_ext.SharedLibrary(
