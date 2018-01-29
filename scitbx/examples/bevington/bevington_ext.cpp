@@ -10,6 +10,7 @@
 #include <scitbx/math/mean_and_variance.h>
 #include <scitbx/array_family/boost_python/shared_wrapper.h>
 #include <scitbx/examples/bevington/prototype_core.h>
+#include <scitbx/examples/bevington/prototype_core_strumpack.h>
 #include <Eigen/Sparse>
 #include <boost/python/return_internal_reference.hpp>
 
@@ -84,6 +85,48 @@ namespace boost_python { namespace {
       .def("access_cpp_build_up_directly_eigen_eqn", &bev::access_cpp_build_up_directly_eigen_eqn,
         (arg("objective_only"),arg("current_values")))
     ;
+
+  //#############################
+
+    class_<linear_ls_strumpack_wrapper>("linear_ls_strumpack_wrapper", no_init)
+      .def(init<int>(arg("n_parameters")))
+      .def("n_parameters", &linear_ls_strumpack_wrapper::n_parameters)
+      .def("reset", &linear_ls_strumpack_wrapper::reset)
+      .def("right_hand_side", &linear_ls_strumpack_wrapper::right_hand_side)
+      .def("solve", &linear_ls_strumpack_wrapper::solve)
+      .def("solved", &linear_ls_strumpack_wrapper::solved)
+      .def("normal_matrix", &linear_ls_strumpack_wrapper::normal_matrix)
+      .def("solution", &linear_ls_strumpack_wrapper::solution)
+    ;
+
+    typedef non_linear_ls_strumpack_wrapper nllssw;
+    class_<nllssw,
+           bases<scitbx::lstbx::normal_equations::non_linear_ls<double> > >(
+           "non_linear_ls_strumpack_wrapper", no_init)
+      .def(init<int const&>(arg("n_parameters")))
+      .def("reset", &nllssw::reset)
+      .def("step_equations",&nllssw::step_equations, rir)
+      .def("add_constant_to_diagonal",&nllssw::add_constant_to_diagonal)
+      //.def("show_eigen_summary",&nllssw::show_eigen_summary)
+      .def("get_normal_matrix_diagonal",&nllssw::get_normal_matrix_diagonal)
+      .def("get_normal_matrix",&nllssw::get_normal_matrix)
+      //.def("get_cholesky_lower", &nllssw::get_cholesky_lower)
+      //.def("get_cholesky_diagonal", &nllssw::get_cholesky_diagonal)
+      .def("add_equations", &nllssw::add_equations)
+      .def("solved", &nllssw::solved)
+      .def("get_normal_matrix_ncols", &nllssw::get_normal_matrix_ncols)
+      .def("n_parameters", &nllssw::n_parameters)
+      .def("get_normal_matrix_nnonZeros", &nllssw::get_normal_matrix_nnonZeros)
+      //.def("get_lower_cholesky_nnonZeros", &nllssw::get_lower_cholesky_nnonZeros)
+    ;
+
+    typedef strumpack_base_class bevs;
+    class_<bevs,bases<silver, nllssw> >( "strumpack_base_class", no_init)
+      .def(init<int>(arg("n_parameters")))
+      .def("access_cpp_build_up_directly_strumpack_eqn", &bevs::access_cpp_build_up_directly_strumpack_eqn,
+        (arg("objective_only"),arg("current_values")))
+    ;
+  
   }
 
 }
@@ -94,3 +137,4 @@ BOOST_PYTHON_MODULE(scitbx_examples_bevington_ext)
   scitbx::example::boost_python::scaling_init_module();
 
 }
+
