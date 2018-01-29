@@ -13,6 +13,8 @@
 #include <scitbx/examples/bevington/prototype_core_strumpack.h>
 #include <Eigen/Sparse>
 #include <boost/python/return_internal_reference.hpp>
+#define _OPENMP 1
+#include <omp.h>
 
 using namespace boost::python;
 namespace scitbx{
