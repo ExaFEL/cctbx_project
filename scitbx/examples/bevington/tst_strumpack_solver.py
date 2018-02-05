@@ -4,28 +4,33 @@ from libtbx.test_utils import approx_equal
 '''
 /          \     /    \
 | 1. 2. 1. |     | 2. |
-| 0. 1. 2. | X = | 0. |
-| 3. 2. 1. |     | 1. |
+| 2. 2. 2. | X = | 0. |
+| 1. 2. 3. |     | 1. |
 \         /      \   /
 '''
-A = sqr( [1.,2.,1.,0.,1.,2.,3.,2.,1.] ) #Dense representation of above CSR 3x3 matrix
+A = sqr( [1.,2.,1.,2.,2.,2.,1.,2.,3.] ) #Dense representation of above CSR 3x3 matrix
 b=col([2.,0.,1.])
 s_mat_result =  ((A.inverse()*b)).as_flex_double_matrix()
 print "scitbx.matrix solution:="
 print list(s_mat_result)
 
-from scitbx.examples.bevington import sparse_solver as ss
+import boost.python
+ext = boost.python.import_ext("scitbx_examples_strumpack_solver_ext")
 
 n_rows = 3
 n_cols = 3
 nnz = 8 
 
-A_row_offset = flex.int([0,3,5,8])
-A_col_offset = flex.int([0,1,2,1,2,0,1,2])
-A_values = flex.double([1.,2.,1.,1.,2.,3.,2.,1.])
+A_row_offset = flex.int([0,3,6,9])
+A_col_offset = flex.int([0,1,2,0,1,2,0,1,2])
+A_values = flex.double([1.,2.,1.,2.,2.,2.,1.,2.,3.])
+
+print "A_row_offset=",list(A_row_offset)
+print "A_col_offset=",list(A_col_offset)
+print "A_values=",list(A_values)
 
 b=flex.double([2.,0.,1.])
-res = ss(n_rows, n_cols, A_row_offset, A_col_offset, A_values, b)
+res = ext.sparse_solver(n_rows, n_cols, A_row_offset, A_col_offset, A_values, b)
 strum_result = res.x
 print "strumpack solution:="
 print list(strum_result)

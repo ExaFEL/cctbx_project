@@ -1,8 +1,65 @@
+#############################################################################################
 from __future__ import division
 import scitbx.lbfgs
 from scitbx.array_family import flex
 from math import exp,sqrt
 from scitbx.matrix import sqr
+#############################################################################################
+from scitbx.examples.bevington import bevington_silver
+from scitbx.lstbx import normal_eqns
+from scitbx.lstbx import normal_eqns_solving
+
+from scitbx.examples.bevington import dense_base_class
+from scitbx.examples.bevington import eigen_base_class
+from scitbx.examples.bevington import strumpack_base_class
+
+#############################################################################################
+
+'''
+EXPLANATION OF CLASS HIERARCHY.
+
+bevington_silver(C++)
+fundamental expression of target function, gradients, curvatures
+  ^                  ^
+  |                  |
+  |
+lbfgs_biexponential_fit(Python)
+engine for lbfgs parameter fit; has a scitbx.lbfgs
+-------------------------------------------------- done with LBFGS
+                     |
+                     |  scitbx::lstbx::normal_equations::non_linear_ls
+                     |    ^
+                     |    |
+  dense_base_class(C++): specializes quick build up function for Levenberg Marquardt
+                 ^
+                 |            levenberg_common(Python)
+                 |            LM infrastructure
+                 |             ^
+                 |             |     normal_eqns.non_linear_ls_mixin(Python)
+                 |             |     LM infrastructure
+                 |             |      ^
+                 |             |      |
+  levenberg_helper(Python): main engine for dense-matrix levenberg
+  ------------------------------------------------ done with dense matrix LM
+
+                     ^    ^
+                     |    |
+                     |  non_linear_ls_eigen_wrapper(C++)
+                     |  specialization of non_linear_ls, has a linear_ls_eigen_wrapper
+                     |                     ^
+                     |                     |
+  eigen_base_class(C++): specializes sparse Cholesky build up function for Levenberg Marq.
+            ^
+            |                  ^      ^
+            |                  |      |
+  eigen_helper(Python): main engine for sparse-Cholesky levenberg
+  ------------------------------------------------ done with sparse Cholesky LM
+
+
+  To do list:
+  is there a quick calculation of the diag error elements?  Perhaps using sparse vectors.
+  try to implement the algorithm & see; then implement an eigen version
+'''
 
 data = """
 Perform parameter fit three ways:
@@ -84,15 +141,19 @@ Initial values for parameters, to be refined:
 10 900 80 27 225
 """
 
+#############################################################################################
+
 raw_strings = data.split("\n")
 data_index = raw_strings.index("Time Counts")
 x_obs = flex.double([float(line.split()[0]) for line in raw_strings[data_index+1:data_index+60]])
 y_obs = flex.double([float(line.split()[1]) for line in raw_strings[data_index+1:data_index+60]])
 w_obs = 1./(y_obs)
 initial = flex.double([10, 900, 80, 27, 225])
-#initial = flex.double([10.4, 958.3, 131.4, 33.9, 205])
 
-from scitbx.examples.bevington import bevington_silver
+#############################################################################################
+#############################################################################################
+
+# Example 1: LBFGS without curvatures
 class lbfgs_biexponential_fit (bevington_silver):
   def __init__(self, x_obs, y_obs, w_obs, initial):
     super(lbfgs_biexponential_fit,self).__init__()
@@ -105,10 +166,17 @@ class lbfgs_biexponential_fit (bevington_silver):
     self.x = initial.deep_copy()
     self.minimizer = scitbx.lbfgs.run(target_evaluator=self)
     self.a = self.x
+    print "------------------------------------------------------------------------- "
+    print "       Initial and fitted coeffcients, and inverse-curvature e.s.d.'s"
+    print "------------------------------------------------------------------------- "
+
+#############################################################################################
 
   def print_step(pfh,message,target):
     print "%s %10.4f"%(message,target),
     print "["," ".join(["%10.4f"%a for a in pfh.x]),"]"
+
+#############################################################################################
 
   def compute_functional_and_gradients(self):
     self.a = self.x
@@ -117,8 +185,11 @@ class lbfgs_biexponential_fit (bevington_silver):
     g = self.gvec_callable(self.x)
     return f, g
 
-def lbfgs_example(verbose):
+#############################################################################################
+#############################################################################################
 
+def lbfgs_example(verbose):
+  
   fit = lbfgs_biexponential_fit(x_obs=x_obs,y_obs=y_obs,w_obs=w_obs,initial=initial)
   print "------------------------------------------------------------------------- "
   print "       Initial and fitted coeffcients, and inverse-curvature e.s.d.'s"
@@ -129,8 +200,8 @@ def lbfgs_example(verbose):
     print "%2d %10.4f %10.4f %10.4f"%(
            i, initial[i], fit.a[i], sqrt(2./fit.curvatures()[i]))
 
-from scitbx.lstbx import normal_eqns
-from scitbx.lstbx import normal_eqns_solving
+#############################################################################################
+
 class levenberg_common(object):
   def initialize(pfh, initial_estimates):
     pfh.x_0 = flex.double(initial_estimates)
@@ -157,11 +228,16 @@ class levenberg_common(object):
     print "%s %10.4f"%(message,functional),
     print "["," ".join(["%10.4f"%a for a in pfh.x]),"]"
 
-from scitbx.examples.bevington import dense_base_class
+#############################################################################################
+#############################################################################################
+
 class levenberg_helper(dense_base_class,levenberg_common,normal_eqns.non_linear_ls_mixin):
+
   def __init__(pfh, initial_estimates):
     super(levenberg_helper, pfh).__init__(n_parameters=len(initial_estimates))
     pfh.initialize(initial_estimates)
+
+#############################################################################################
 
   def build_up(pfh, objective_only=False):
     if not objective_only: pfh.counter+=1
@@ -170,6 +246,9 @@ class levenberg_helper(dense_base_class,levenberg_common,normal_eqns.non_linear_
       functional = pfh.functional(pfh.x)
       pfh.print_step("LM  dense",functional = functional)
     pfh.access_cpp_build_up_directly_dense(objective_only, current_values = pfh.x)
+
+#############################################################################################
+#############################################################################################
 
 class dense_worker(object):
 
@@ -191,6 +270,7 @@ class dense_worker(object):
     nm_elem = flex.double(25)
     self.c = flex.double(5)
     ctr = 0
+    #Defining upper triangular values?
     for x in xrange(5):
       x_0 = ctr
       for y in xrange(4,x-1,-1):
@@ -207,24 +287,16 @@ class dense_worker(object):
     self.error_diagonal = [error_matrix(a,a) for a in xrange(5)]
     print "End of minimization: Converged", self.helper.counter,"cycles"
 
-def levenberg_example(verbose):
+#############################################################################################
+#############################################################################################
 
-  fit = dense_worker(x_obs=x_obs,y_obs=y_obs,w_obs=w_obs,initial=initial)
-  print "-------------------------------------------------------------------------------------- "
-  print " Initial and fitted parameters, full-matrix e.s.d.'s, and inverse-curvature e.s.d.'s"
-  print "-------------------------------------------------------------------------------------- "
-
-  for i in range(initial.size()):
-
-    print "%2d %10.4f %10.4f %10.4f %10.4f"%(
-      i, initial[i], fit.helper.x[i], sqrt(fit.error_diagonal[i]), sqrt(1./fit.c[i]))
-
-from scitbx.examples.bevington import eigen_base_class
 class eigen_helper(eigen_base_class,levenberg_common,normal_eqns.non_linear_ls_mixin):
   def __init__(pfh, initial_estimates):
     super(eigen_helper, pfh).__init__(n_parameters=len(initial_estimates))
     pfh.initialize(initial_estimates)
 
+#############################################################################################
+ 
   def build_up(pfh, objective_only=False):
     if not objective_only: pfh.counter+=1
     pfh.reset()
@@ -234,22 +306,9 @@ class eigen_helper(eigen_base_class,levenberg_common,normal_eqns.non_linear_ls_m
       pfh.print_step("LM sparse",functional = functional)
     pfh.access_cpp_build_up_directly_eigen_eqn(objective_only, current_values = pfh.x)
 
+#############################################################################################
+#############################################################################################
 class eigen_worker(object):
-
-  def get_helper_normal_matrix(self):
-    norm_mat_packed_upper = self.helper.get_normal_matrix()
-    # convert upper triangle to all elements:
-    Nx = len(self.helper.x)
-    all_elems = flex.double(Nx*Nx)
-    ctr = 0
-    for x in xrange(Nx):
-      x_0 = ctr
-      for y in xrange(Nx-1,x-1,-1):
-        all_elems[ Nx*x+y ] = norm_mat_packed_upper[x_0+(y-x)]
-        ctr += 1
-        if x!= y:
-          all_elems[ Nx*y+x ] = norm_mat_packed_upper[x_0+(y-x)]
-    return all_elems
 
   def __init__(self,x_obs,y_obs,w_obs,initial):
     self.counter = 0
@@ -273,22 +332,25 @@ class eigen_worker(object):
 
     print "End of minimization: Converged", self.helper.counter,"cycles"
 
-def eigen_example(verbose):
+#############################################################################################
 
-  fit = eigen_worker(x_obs=x_obs,y_obs=y_obs,w_obs=w_obs,initial=initial)
-  print "----------------------------------------------------------------- "
-  print "       Initial and fitted parameters & full-matrix e.s.d.'s"
-  print "----------------------------------------------------------------- "
-
-  for i in range(initial.size()):
-
-    print "%2d %10.4f %10.4f %10.4f"%(
-          i, initial[i], fit.helper.x[i], sqrt(fit.error_diagonal[i]) )
-
+  def get_helper_normal_matrix(self):
+    norm_mat_packed_upper = self.helper.get_normal_matrix()
+    # convert upper triangle to all elements:
+    Nx = len(self.helper.x)
+    all_elems = flex.double(Nx*Nx)
+    ctr = 0
+    for x in xrange(Nx):
+      x_0 = ctr
+      for y in xrange(Nx-1,x-1,-1):
+        all_elems[ Nx*x+y ] = norm_mat_packed_upper[x_0+(y-x)]
+        ctr += 1
+        if x!= y:
+          all_elems[ Nx*y+x ] = norm_mat_packed_upper[x_0+(y-x)]
+    return all_elems
 
 #############################################################################################
 #############################################################################################
-from scitbx.examples.bevington import strumpack_base_class
 class strumpack_helper(strumpack_base_class,levenberg_common,normal_eqns.non_linear_ls_mixin):
 
 #############################################################################################
@@ -311,8 +373,32 @@ class strumpack_helper(strumpack_base_class,levenberg_common,normal_eqns.non_lin
 #############################################################################################
 
 class strumpack_worker(object):
-  
+  def __init__(self,x_obs,y_obs,w_obs,initial):
+    self.counter = 0
+    self.x = initial.deep_copy()
+    self.helper = strumpack_helper(initial_estimates = self.x)
+    self.helper.set_cpp_data(x_obs,y_obs,w_obs)
+    self.helper.restart()
+    iterations = normal_eqns_solving.levenberg_marquardt_iterations_encapsulated_eqns(
+               non_linear_ls = self.helper,
+               n_max_iterations = 5000,
+               track_all=True,
+               step_threshold = 0.0001,
+    )
+    ###### get esd's
+    self.helper.build_up()
+    NM = sqr(self.get_helper_normal_matrix())
+    from scitbx.linalg.svd import inverse_via_svd
+    #self.helper.solve()
+
+    svd_inverse,sigma = inverse_via_svd(NM.as_flex_double_matrix())
+    IA = sqr(svd_inverse)
+    self.error_diagonal = flex.double([IA(i,i) for i in xrange(self.helper.x.size())])
+
+    print "End of minimization: Converged", self.helper.counter,"cycles"
+
 #############################################################################################
+
   def get_helper_normal_matrix(self):
     norm_mat_packed_upper = self.helper.get_normal_matrix()
     # convert upper triangle to all elements:
@@ -329,110 +415,35 @@ class strumpack_worker(object):
     return all_elems
 
 #############################################################################################
-
-  def __init__(self,x_obs,y_obs,w_obs,initial):
-    self.counter = 0
-    self.x = initial.deep_copy()
-    self.helper = strumpack_helper(initial_estimates = self.x)
-    self.helper.set_cpp_data(x_obs,y_obs,w_obs)
-    self.helper.restart()
-    iterations = normal_eqns_solving.levenberg_marquardt_iterations_encapsulated_eqns(
-               non_linear_ls = self.helper,
-               n_max_iterations = 5000,
-               track_all=True,
-               step_threshold = 0.0001,
-    )
-    ###### get esd's
-    self.helper.build_up()
-    NM = sqr(self.get_helper_normal_matrix())
-
-    from scitbx.linalg.svd import inverse_via_svd
-    '''
-    from scitbx.examples.bevington import sparse_solver as ss
-    from IPython import embed; embed()
-
-
-    NM.as_flex_double_matrix()
-    res = ss(5,5,[0,5,10,15,20,25],[0,1,2,3,4]*5,list(NM.as_flex_double_matrix()),list(self.helper.x))
-    '''
-    self.helper.solve()
-
-    svd_inverse,sigma = inverse_via_svd(NM.as_flex_double_matrix())
-    IA = sqr(svd_inverse)
-    self.error_diagonal = flex.double([IA(i,i) for i in xrange(self.helper.x.size())])
-
-    print "End of minimization: Converged", self.helper.counter,"cycles"
-
 #############################################################################################
 
-def strumpack_example(verbose):
-  
-  fit = strumpack_worker(x_obs=x_obs,y_obs=y_obs,w_obs=w_obs,initial=initial)
+def run_example(function,funct_title):
+  print funct_title
+  best_fit = function(x_obs=x_obs,y_obs=y_obs,w_obs=w_obs,initial=initial)
   print "----------------------------------------------------------------- "
   print "       Initial and fitted parameters & full-matrix e.s.d.'s"
   print "----------------------------------------------------------------- "
+  try:
+    for i in range(initial.size()):
+      print "%2d %10.4f %10.4f %10.4f"%(
+          i, initial[i], best_fit.helper.x[i], sqrt(best_fit.error_diagonal[i]) )
+  except:
+    print "------------------------------------------------------------------------- "
+    print "       Initial and fitted coeffcients, and inverse-curvature e.s.d.'s"
+    print "------------------------------------------------------------------------- "
+    for i in range(initial.size()):
+      print "%2d %10.4f %10.4f %10.4f"%(
+          i, initial[i], best_fit.x[i], sqrt(2./best_fit.curvatures()[i]) )
 
-  for i in range(initial.size()):
-
-    print "%2d %10.4f %10.4f %10.4f"%(
-          i, initial[i], fit.helper.x[i], sqrt(fit.error_diagonal[i]) )
-
-#############################################################################################
 #############################################################################################
 
 if (__name__ == "__main__"):
   verbose=True
-  print "\n LBFGS:"
-  lbfgs_example(verbose)
-  print "\n DENSE MATRIX:"
-  levenberg_example(verbose)
-  print "\n EIGEN SPARSE MATRIX:"
-  eigen_example(verbose)
-  print "\n STRUMPACK SPARSE MATRIX:"
-  strumpack_example(verbose)
-'''
-EXPLANATION OF CLASS HIERARCHY.
 
-bevington_silver(C++)
-fundamental expression of target function, gradients, curvatures
-  ^                  ^
-  |                  |
-  |
-lbfgs_biexponential_fit(Python)
-engine for lbfgs parameter fit; has a scitbx.lbfgs
--------------------------------------------------- done with LBFGS
-                     |
-                     |  scitbx::lstbx::normal_equations::non_linear_ls
-                     |    ^
-                     |    |
-  dense_base_class(C++): specializes quick build up function for Levenberg Marquardt
-                 ^
-                 |            levenberg_common(Python)
-                 |            LM infrastructure
-                 |             ^
-                 |             |     normal_eqns.non_linear_ls_mixin(Python)
-                 |             |     LM infrastructure
-                 |             |      ^
-                 |             |      |
-  levenberg_helper(Python): main engine for dense-matrix levenberg
-  ------------------------------------------------ done with dense matrix LM
+  run_example( lbfgs_biexponential_fit, "\n LBFGS:")
+  run_example( dense_worker, "\n DENSE MATRIX:")
+  run_example( eigen_worker, "\n EIGEN SPARSE MATRIX:")
+  run_example( strumpack_worker, "\n STRUMPACK SPARSE MATRIX:")
 
-                     ^    ^
-                     |    |
-                     |  non_linear_ls_eigen_wrapper(C++)
-                     |  specialization of non_linear_ls, has a linear_ls_eigen_wrapper
-                     |                     ^
-                     |                     |
-  eigen_base_class(C++): specializes sparse Cholesky build up function for Levenberg Marq.
-            ^
-            |                  ^      ^
-            |                  |      |
-  eigen_helper(Python): main engine for sparse-Cholesky levenberg
-  ------------------------------------------------ done with sparse Cholesky LM
-
-
-  To do list:
-  is there a quick calculation of the diag error elements?  Perhaps using sparse vectors.
-  try to implement the algorithm & see; then implement an eigen version
-'''
+#############################################################################################
 
