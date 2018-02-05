@@ -9,6 +9,9 @@
 #include <Eigen/Sparse>
 #include "StrumpackSparseSolver.hpp"
 
+#include <iostream>
+#include <fstream>
+
 using std::size_t;
 
 namespace scitbx{
@@ -81,46 +84,53 @@ class linear_ls_strumpack_wrapper
       SCITBX_ASSERT(formed_normal_matrix());
       int N = n_parameters();
 
-      /* ///The following code will print out all CSR values in the sparse matrix
-      for(int outer = 0; outer < eigen_normal_matrix.outerSize(); ++outer){
-        std::cout <<"OUTER[" << outer << "]=" << *(eigen_normal_matrix.outerIndexPtr() +outer) << std::endl;
-      }
-      for(int inner = 0; inner < eigen_normal_matrix.nonZeros(); ++inner){
-        std::cout <<"INNER[" << inner << "]=" << *(eigen_normal_matrix.innerIndexPtr() +inner) << std::endl;
-      }
-      for(int value = 0; value < eigen_normal_matrix.nonZeros(); ++value){
-        std::cout <<"VALUE[" << value << "]=" << *(eigen_normal_matrix.valuePtr() +value) << std::endl;
-      }*/
+      Eigen::SparseMatrix<double> eigen_normal_matrixT = eigen_normal_matrix + Eigen::SparseMatrix<double> (eigen_normal_matrix.transpose());
 
-      strumpack::StrumpackSparseSolver<double,int> spss;
+      for (int i = 0; i < 5; ++i){
+        eigen_normal_matrixT.coeffRef(i,i) = eigen_normal_matrix.coeffRef(i,i);
+      }
+
+      strumpack::StrumpackSparseSolver<double,int> spss(false,true);//verbose output off
       spss.options().set_mc64job(0);
 
       //Set the sparse matrix values using the CSR format
-      spss.set_csr_matrix(eigen_normal_matrix.outerSize(), 
-                          eigen_normal_matrix.outerIndexPtr(), 
-                          eigen_normal_matrix.innerIndexPtr(), 
-                          eigen_normal_matrix.valuePtr(), false); //If matrix is symmetric false->true
+      spss.set_csr_matrix(eigen_normal_matrixT.outerSize(), 
+                          eigen_normal_matrixT.outerIndexPtr(), 
+                          eigen_normal_matrixT.innerIndexPtr(), 
+                          eigen_normal_matrixT.valuePtr(),true); //If matrix is symmetric false->true
+#ifdef _STRUMPACK_MATRIX_OUT_
+      std::ofstream Amat, bvec, xvec;
+      Amat.open ("A_strum.csv", std::ios::out | std::ios::app);
+      bvec.open ("b_strum.csv", std::ios::out | std::ios::app);
+      xvec.open ("x_strum.csv", std::ios::out | std::ios::app);
 
-      spss.reorder( eigen_normal_matrix.rows(), eigen_normal_matrix.cols() );
+      for (int ii=0; ii<5; ++ii){
+        for(int jj=0; jj<5; ++jj){
+          Amat << eigen_normal_matrixT.coeff(ii,jj) << "," ;
+        }
+        Amat << std::endl ;
+      }
+      Amat << std::endl ;
 
-      // XXX pack the right hand side in a eigen vector type
-
-      /*
-      scitbx::af::shared<double> b(n_parameters());
-      double* rhsptr = right_hand_side_.begin();
-      for (int i = 0; i<N; ++i){
-        b[i] = *rhsptr++;
-      }*/
-
+      for (int kk=0; kk<5; ++kk){
+        bvec << *(right_hand_side_.begin() + kk) << "," ;
+      }
+      bvec << "\n\n";
+      Amat.close();
+      bvec.close();
+#endif
       //Create solution vector initialised initially to 0.
-      scitbx::af::shared<double> x(eigen_normal_matrix.rows(),0.);
+      scitbx::af::shared<double> x(eigen_normal_matrixT.rows(),0.);
+
+      spss.reorder();
+      spss.factor();
 
       //Solve Ax=b, where b= right_hand_side_ 
       spss.solve(right_hand_side_.begin(), x.begin());
 
       //  XXX put the solution in the solution_ variable
       double* solnptr = solution_.begin();
-      for (int i = 0; i < eigen_normal_matrix.rows(); ++i){
+      for (int i = 0; i < eigen_normal_matrixT.rows(); ++i){
         *solnptr++ = x[i];
       }
       solved_ = true;
@@ -139,12 +149,11 @@ class linear_ls_strumpack_wrapper
       //SCITBX_EXAMINE(eigen_normal_matrix.nonZeros());
       // loop only thru non-zero elements to populate the result array.
 
-      int irow, icol; //Moving outside loop to improve performance
       std::size_t offset_slow, offset_fast;
       for (int k=0; k < eigen_normal_matrix.outerSize(); ++k) { // column major, so outer (slow) means loop over column
         for (sparse_matrix_t::InnerIterator it(eigen_normal_matrix,k); it; ++it) {
-          irow = it.row();   // row index
-          icol = it.col();   // col index (here it is equal to k)
+          int irow = it.row();   // row index
+          int icol = it.col();   // col index (here it is equal to k)
           offset_slow = N * irow - ( irow * (irow - 1) ) / 2;
           offset_fast = icol - irow;
           ptr[ offset_slow + offset_fast ] = it.value();
@@ -153,7 +162,7 @@ class linear_ls_strumpack_wrapper
       return result;
     }
 
-/*
+
     void show_eigen_summary() const {
       SCITBX_ASSERT(formed_normal_matrix());
       long matsize = long(eigen_normal_matrix.cols()) * (eigen_normal_matrix.cols()+1)/2;
@@ -173,9 +182,9 @@ class linear_ls_strumpack_wrapper
               long(lower.nonZeros()),
               100. * long(lower.nonZeros())/double(matsize));
     }
-*/
 
-/*
+
+
     scitbx::af::shared<double> get_cholesky_diagonal() const {
       SCITBX_ASSERT (!solved_);
       SCITBX_ASSERT(formed_normal_matrix());
@@ -189,9 +198,9 @@ class linear_ls_strumpack_wrapper
       }
       return diagonal;
     }
-*/
 
-/*
+
+
     scitbx::af::shared<double> get_cholesky_lower() const {
       SCITBX_ASSERT (!solved_);
       SCITBX_ASSERT(formed_normal_matrix());
@@ -212,9 +221,9 @@ class linear_ls_strumpack_wrapper
       }
       return triangular_result;
     }
-*/
 
-/*
+
+
     scitbx::af::shared<int> get_eigen_permutation_ordering() const {
       SCITBX_ASSERT (!solved_);
       SCITBX_ASSERT(formed_normal_matrix());
@@ -226,7 +235,7 @@ class linear_ls_strumpack_wrapper
       }
       return one_D_result;
     }
-*/
+
 
     bool solved() const {
       return solved_;
@@ -280,11 +289,10 @@ class non_linear_ls_strumpack_wrapper:  public scitbx::lstbx::normal_equations::
       form_normal_matrix();
       // loop only thru non-zero elements to update the eigen array.
       // column major, so outer (slow) means loop over column
-      int irow, icol;
       for (int k=0; k < strumpack_wrapper.eigen_normal_matrix.outerSize(); ++k) { // column major, so outer (slow) means loop over column
         for (linear_ls_strumpack_wrapper::sparse_matrix_t::InnerIterator it(strumpack_wrapper.eigen_normal_matrix,k);it;++it) {
-          irow = it.row();   // row index
-          icol = it.col();   // col index (here it is equal to k)
+          int irow = it.row();   // row index
+          int icol = it.col();   // col index (here it is equal to k)
           if (irow!=icol){continue;}
           it.valueRef() = it.value() + increment;
         }
@@ -309,11 +317,10 @@ class non_linear_ls_strumpack_wrapper:  public scitbx::lstbx::normal_equations::
       //SCITBX_EXAMINE(result.size());
       //SCITBX_EXAMINE(N);
       //SCITBX_EXAMINE(strumpack_wrapper.eigen_normal_matrix.nonZeros());
-      int irow, icol;
       for (int k=0; k < strumpack_wrapper.eigen_normal_matrix.outerSize(); ++k) { // column major, so outer (slow) means loop over column
         for (linear_ls_strumpack_wrapper::sparse_matrix_t::InnerIterator it(strumpack_wrapper.eigen_normal_matrix,k);it;++it) {
-          irow = it.row();   // row index
-          icol = it.col();   // col index (here it is equal to k)
+          int irow = it.row();   // row index
+          int icol = it.col();   // col index (here it is equal to k)
           if (irow!=icol){continue;}
           ptr[ k ] = it.value();
         }
@@ -401,27 +408,27 @@ class non_linear_ls_strumpack_wrapper:  public scitbx::lstbx::normal_equations::
       //critical to release this memory
       tripletList = triplet_list_t();
     }
-    /*
+    
     void show_eigen_summary(){
       form_normal_matrix();
-      eigen_wrapper.show_eigen_summary();
+      strumpack_wrapper.show_eigen_summary();
     }
-    */
-    /*
+    
+    
     scitbx::af::shared<double> get_cholesky_lower(){
       form_normal_matrix();
-      return eigen_wrapper.get_cholesky_lower();
+      return strumpack_wrapper.get_cholesky_lower();
     }
     scitbx::af::shared<double> get_cholesky_diagonal(){
       form_normal_matrix();
-      return eigen_wrapper.get_cholesky_diagonal();
+      return strumpack_wrapper.get_cholesky_diagonal();
     }
     
     scitbx::af::shared<int> get_eigen_permutation_ordering(){
       form_normal_matrix();
       return strumpack_wrapper.get_eigen_permutation_ordering();
     }
-    */
+    
     bool solved() const{
       return strumpack_wrapper.solved();
     }
@@ -434,10 +441,10 @@ class non_linear_ls_strumpack_wrapper:  public scitbx::lstbx::normal_equations::
     long get_normal_matrix_nnonZeros() const{
       return long(strumpack_wrapper.eigen_normal_matrix.nonZeros());
     }
-    /*
+    
     long get_lower_cholesky_nnonZeros() const{
       return long(strumpack_wrapper.last_computed_matrixL_nonZeros_);
-    }*/
+    }
 
   public: /* data */
     linear_ls_strumpack_wrapper strumpack_wrapper;

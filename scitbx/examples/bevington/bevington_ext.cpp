@@ -109,17 +109,17 @@ namespace boost_python { namespace {
       .def("reset", &nllssw::reset)
       .def("step_equations",&nllssw::step_equations, rir)
       .def("add_constant_to_diagonal",&nllssw::add_constant_to_diagonal)
-      //.def("show_eigen_summary",&nllssw::show_eigen_summary)
+      .def("show_eigen_summary",&nllssw::show_eigen_summary)
       .def("get_normal_matrix_diagonal",&nllssw::get_normal_matrix_diagonal)
       .def("get_normal_matrix",&nllssw::get_normal_matrix)
-      //.def("get_cholesky_lower", &nllssw::get_cholesky_lower)
-      //.def("get_cholesky_diagonal", &nllssw::get_cholesky_diagonal)
+      .def("get_cholesky_lower", &nllssw::get_cholesky_lower)
+      .def("get_cholesky_diagonal", &nllssw::get_cholesky_diagonal)
       .def("add_equations", &nllssw::add_equations)
       .def("solved", &nllssw::solved)
       .def("get_normal_matrix_ncols", &nllssw::get_normal_matrix_ncols)
       .def("n_parameters", &nllssw::n_parameters)
       .def("get_normal_matrix_nnonZeros", &nllssw::get_normal_matrix_nnonZeros)
-      //.def("get_lower_cholesky_nnonZeros", &nllssw::get_lower_cholesky_nnonZeros)
+      .def("get_lower_cholesky_nnonZeros", &nllssw::get_lower_cholesky_nnonZeros)
     ;
 
     typedef strumpack_base_class bevs;

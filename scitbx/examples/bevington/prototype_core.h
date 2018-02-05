@@ -8,6 +8,9 @@
 #include <vector>
 #include <Eigen/Sparse>
 
+#include <iostream>
+#include <fstream>
+
 using std::size_t;
 
 namespace scitbx{
@@ -82,6 +85,7 @@ class linear_ls_eigen_wrapper
     void solve() {
       SCITBX_ASSERT(formed_normal_matrix());
       int N = n_parameters();
+
       Eigen::SimplicialLDLT<sparse_matrix_t> chol(eigen_normal_matrix.transpose());
       // XXX pack the right hand side in a eigen vector type
       Eigen::VectorXd b(n_parameters());
@@ -89,7 +93,27 @@ class linear_ls_eigen_wrapper
       for (int i = 0; i<N; ++i){
         b[i] = *rhsptr++;
       }
+#ifdef _EIGEN_MATRIX_OUTPUT_
+      std::ofstream Amat, bvec, xvec;
+      Amat.open ("A_eigen.csv", std::ios::out | std::ios::app);
+      bvec.open ("b_eigen.csv", std::ios::out | std::ios::app);
+      xvec.open ("x_eigen.csv", std::ios::out | std::ios::app);
 
+      for (int ii=0; ii<5;++ii){
+        for(int jj=0; jj<5; ++jj){
+          Amat << eigen_normal_matrix.coeff(ii,jj) << "," ;   
+        }
+        Amat << std::endl ;   
+      }
+      Amat << std::endl ;   
+      for (int kk=0; kk<5; ++kk){
+        bvec << b[kk] << "," ;   
+      }
+      bvec << "\n\n";
+
+      Amat.close();
+      bvec.close();
+#endif
       Eigen::VectorXd x = chol.solve(b);
 
       //Try to record state of lower Cholesky factor without incurring cost of computing # non-Zeros again

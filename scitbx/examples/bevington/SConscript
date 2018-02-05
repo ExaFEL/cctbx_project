@@ -54,13 +54,16 @@ except Exception:
 
 try:
   env_etc.strumpack_dist = os.path.abspath(os.path.join(libtbx.env.dist_path("boost"),"../../strumpack_build/include"))
+  env_etc.eigen_dist = os.path.abspath(os.path.join(libtbx.env.dist_path("boost"),"../eigen"))
   if os.path.isdir(env_etc.eigen_dist):
+    env_etc.eigen_include = env_etc.eigen_dist
     env_etc.strumpack_include = env_etc.strumpack_dist
     env_etc.scitbx_ex_strumpack_common_includes = [
       env_etc.strumpack_include,
       env_etc.libtbx_include,
       env_etc.scitbx_include,
       env_etc.boost_include,
+      env_etc.eigen_include
     ]
     '''
     env = env_base.Clone(SHLINKFLAGS=env_etc.shlinkflags)
