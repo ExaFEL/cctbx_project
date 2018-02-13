@@ -128,7 +128,7 @@ namespace boost_python { namespace {
       .def("access_cpp_build_up_directly_strumpack_eqn", &bevs::access_cpp_build_up_directly_strumpack_eqn,
         (arg("objective_only"),arg("current_values")))
     ;
-  
+
   }
 
 }
@@ -139,4 +139,3 @@ BOOST_PYTHON_MODULE(scitbx_examples_bevington_ext)
   scitbx::example::boost_python::scaling_init_module();
 
 }
-

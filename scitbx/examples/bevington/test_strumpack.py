@@ -1,5 +1,6 @@
 from scitbx.examples.bevington import sparse_solver as ss
 from cctbx.array_family import flex
+from __future__ import division
 
 n_rows = 3
 n_cols = 3
