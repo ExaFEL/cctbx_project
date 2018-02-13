@@ -101,13 +101,13 @@ class linear_ls_eigen_wrapper
 
       for (int ii=0; ii<5;++ii){
         for(int jj=0; jj<5; ++jj){
-          Amat << eigen_normal_matrix.coeff(ii,jj) << "," ;   
+          Amat << eigen_normal_matrix.coeff(ii,jj) << "," ;
         }
-        Amat << std::endl ;   
+        Amat << std::endl ;
       }
-      Amat << std::endl ;   
+      Amat << std::endl ;
       for (int kk=0; kk<5; ++kk){
-        bvec << b[kk] << "," ;   
+        bvec << b[kk] << "," ;
       }
       bvec << "\n\n";
 
@@ -582,4 +582,3 @@ class eigen_base_class: public bevington_silver, public non_linear_ls_eigen_wrap
 }}
 
 #endif // SCITBX_EXAMPLES_BEVINGTON_H
-

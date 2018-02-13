@@ -84,56 +84,59 @@ class linear_ls_strumpack_wrapper
       SCITBX_ASSERT(formed_normal_matrix());
       int N = n_parameters();
 
-      Eigen::SparseMatrix<double> eigen_normal_matrixT = eigen_normal_matrix + Eigen::SparseMatrix<double> (eigen_normal_matrix.transpose());
+      strumpack::StrumpackSparseSolver<double,int> spss(true,true); //verbose output on
 
-      for (int i = 0; i < 5; ++i){
-        eigen_normal_matrixT.coeffRef(i,i) = eigen_normal_matrix.coeffRef(i,i);
-      }
 
-      strumpack::StrumpackSparseSolver<double,int> spss(false,true);//verbose output off
-      spss.options().set_mc64job(0);
+      //Set the sparse matrix values by reading the EIGEN arrays directly
+      spss.set_csr_matrix(eigen_normal_matrix.outerSize(),
+                          eigen_normal_matrix.outerIndexPtr(),
+                          eigen_normal_matrix.innerIndexPtr(),
+                          eigen_normal_matrix.valuePtr(),true); //If matrix is symmetric false->true
 
-      //Set the sparse matrix values using the CSR format
-      spss.set_csr_matrix(eigen_normal_matrixT.outerSize(), 
-                          eigen_normal_matrixT.outerIndexPtr(), 
-                          eigen_normal_matrixT.innerIndexPtr(), 
-                          eigen_normal_matrixT.valuePtr(),true); //If matrix is symmetric false->true
+//If the A matrix output is required -D_STRUMPACK_MATRIX_OUT_ compiler flag can be used
 #ifdef _STRUMPACK_MATRIX_OUT_
       std::ofstream Amat, bvec, xvec;
       Amat.open ("A_strum.csv", std::ios::out | std::ios::app);
       bvec.open ("b_strum.csv", std::ios::out | std::ios::app);
       xvec.open ("x_strum.csv", std::ios::out | std::ios::app);
-
-      for (int ii=0; ii<5; ++ii){
-        for(int jj=0; jj<5; ++jj){
-          Amat << eigen_normal_matrixT.coeff(ii,jj) << "," ;
+      //Output matrix as  row col value   format
+      for (int k=0; k < eigen_normal_matrix.outerSize(); ++k){
+        for (Eigen::SparseMatrix<double>::InnerIterator it(eigen_normal_matrix,k); it; ++it){
+          Amat << "" << it.row() << "\t";
+          Amat << it.col() << "\t";
+          Amat << it.value() << std::endl;
         }
-        Amat << std::endl ;
       }
-      Amat << std::endl ;
-
-      for (int kk=0; kk<5; ++kk){
-        bvec << *(right_hand_side_.begin() + kk) << "," ;
+      for (int kk=0; kk<eigen_normal_matrix.outerSize(); ++kk){
+        bvec << *(right_hand_side_.begin() + kk) << "\n" ;
       }
-      bvec << "\n\n";
+      bvec << "\n";
       Amat.close();
       bvec.close();
 #endif
       //Create solution vector initialised initially to 0.
-      scitbx::af::shared<double> x(eigen_normal_matrixT.rows(),0.);
+      scitbx::af::shared<double> x(eigen_normal_matrix.rows(),0.);
 
       spss.reorder();
       spss.factor();
 
-      //Solve Ax=b, where b= right_hand_side_ 
+      //Solve Ax=b, where b=right_hand_side_
       spss.solve(right_hand_side_.begin(), x.begin());
 
       //  XXX put the solution in the solution_ variable
       double* solnptr = solution_.begin();
-      for (int i = 0; i < eigen_normal_matrixT.rows(); ++i){
+      for (int i = 0; i < eigen_normal_matrix.rows(); ++i){
         *solnptr++ = x[i];
       }
       solved_ = true;
+#ifdef _STRUMPACK_MATRIX_OUT_
+      for (int kk=0; kk<eigen_normal_matrix.outerSize(); ++kk){
+        xvec << x[kk] << "\n" ;
+      }
+      xvec << "\n\n";
+      xvec.close();
+      exit(1); //Assuming only the first matrix is requested; exit afterwards
+#endif
     }
 
     // Only available if the equations have not been solved yet
@@ -162,7 +165,6 @@ class linear_ls_strumpack_wrapper
       return result;
     }
 
-
     void show_eigen_summary() const {
       SCITBX_ASSERT(formed_normal_matrix());
       long matsize = long(eigen_normal_matrix.cols()) * (eigen_normal_matrix.cols()+1)/2;
@@ -172,18 +174,12 @@ class linear_ls_strumpack_wrapper
       printf("Normal matrix non-zeros   %12ld, %6.2f%%\n",
               long(eigen_normal_matrix.nonZeros()),
               100. * long(eigen_normal_matrix.nonZeros())/double(matsize));
-
-      std::cout << "INNERNONZEROPTR=" << *(eigen_normal_matrix.innerNonZeroPtr()) << "\n";
-      std::cout << "OUTERINDEXPTR=" << *(eigen_normal_matrix.outerIndexPtr()) << "\n";
-
       Eigen::SimplicialLDLT<sparse_matrix_t> chol(eigen_normal_matrix.transpose());
       sparse_matrix_t lower = chol.matrixL();
       printf("Cholesky factor non-zeros %12ld, %6.2f%%\n",
               long(lower.nonZeros()),
               100. * long(lower.nonZeros())/double(matsize));
     }
-
-
 
     scitbx::af::shared<double> get_cholesky_diagonal() const {
       SCITBX_ASSERT (!solved_);
@@ -198,8 +194,6 @@ class linear_ls_strumpack_wrapper
       }
       return diagonal;
     }
-
-
 
     scitbx::af::shared<double> get_cholesky_lower() const {
       SCITBX_ASSERT (!solved_);
@@ -222,8 +216,6 @@ class linear_ls_strumpack_wrapper
       return triangular_result;
     }
 
-
-
     scitbx::af::shared<int> get_eigen_permutation_ordering() const {
       SCITBX_ASSERT (!solved_);
       SCITBX_ASSERT(formed_normal_matrix());
@@ -235,7 +227,6 @@ class linear_ls_strumpack_wrapper
       }
       return one_D_result;
     }
-
 
     bool solved() const {
       return solved_;
@@ -379,10 +370,10 @@ class non_linear_ls_strumpack_wrapper:  public scitbx::lstbx::normal_equations::
     {
       SCITBX_ASSERT(!strumpack_wrapper.formed_normal_matrix());
       int ndata = row_idx.size();
-      for (int i=0; i<ndata; i++)  {
+      for (int i=0; i<ndata; ++i)  {
         std::size_t idx_i = row_idx[i];
         strumpack_wrapper.right_hand_side_[idx_i] += w * row_data[i] * b_i;
-        for (int j=i; j<ndata; ++j) {
+        for (int j=0; j<ndata; ++j) {
           //push this term into the stack, later to be added to normal matrix
           tripletList.push_back( triplet_t(idx_i, row_idx[j], w * row_data[i] * row_data[j]) );
         }
@@ -408,13 +399,10 @@ class non_linear_ls_strumpack_wrapper:  public scitbx::lstbx::normal_equations::
       //critical to release this memory
       tripletList = triplet_list_t();
     }
-    
     void show_eigen_summary(){
       form_normal_matrix();
-      strumpack_wrapper.show_eigen_summary();
+      //strumpack_wrapper.show_eigen_summary();
     }
-    
-    
     scitbx::af::shared<double> get_cholesky_lower(){
       form_normal_matrix();
       return strumpack_wrapper.get_cholesky_lower();
@@ -423,12 +411,10 @@ class non_linear_ls_strumpack_wrapper:  public scitbx::lstbx::normal_equations::
       form_normal_matrix();
       return strumpack_wrapper.get_cholesky_diagonal();
     }
-    
     scitbx::af::shared<int> get_eigen_permutation_ordering(){
       form_normal_matrix();
       return strumpack_wrapper.get_eigen_permutation_ordering();
     }
-    
     bool solved() const{
       return strumpack_wrapper.solved();
     }
@@ -441,7 +427,6 @@ class non_linear_ls_strumpack_wrapper:  public scitbx::lstbx::normal_equations::
     long get_normal_matrix_nnonZeros() const{
       return long(strumpack_wrapper.eigen_normal_matrix.nonZeros());
     }
-    
     long get_lower_cholesky_nnonZeros() const{
       return long(strumpack_wrapper.last_computed_matrixL_nonZeros_);
     }
@@ -452,114 +437,7 @@ class non_linear_ls_strumpack_wrapper:  public scitbx::lstbx::normal_equations::
   private:
     triplet_list_t tripletList;
 };
-/*
-class bevington_silver {
-  // encode the functional form of the silver decay target, also gradients and curvatures
-  public:
-    typedef scitbx::af::shared<double> vecd;
-    bevington_silver(){} // explicitly instantiate the class so it is available for Python derivation
 
-    void set_cpp_data(vecd x, vecd y, vecd w) // pass reference, avoid big copy
-    {
-       x_obs = x;
-       y_obs = y;
-       w_obs = w;
-    }
-
-    vecd get_xobs(){ return x_obs; }
-    vecd get_wobs(){ return w_obs; }
-
-    vecd
-    fvec_callable(vecd current_values) {
-      vecd y_diff = vecd(x_obs.size());
-      for (int i = 0; i < x_obs.size(); ++i){
-        double y_calc=current_values[0] +
-                      current_values[1] * std::exp( - x_obs[i] / current_values[3]) +
-                      current_values[2] * std::exp( - x_obs[i] / current_values[4]);
-        y_diff[i] = y_obs[i] - y_calc;
-      }
-      return y_diff;
-    }
-
-    vecd
-    gvec_callable(vecd current_values) {
-      vecd y_diff = fvec_callable(current_values);
-      vecd gvec = vecd(current_values.size());
-      cvec = vecd(current_values.size());
-      for (int ix = 0; ix < x_obs.size(); ++ix) {
-        double prefactor = -2. * w_obs[ix] * y_diff[ix];
-        gvec[0] += prefactor;
-        gvec[1] += prefactor * std::exp(-x_obs[ix]/current_values[3]);
-        gvec[2] += prefactor * std::exp(-x_obs[ix]/current_values[4]);
-        gvec[3] += prefactor * current_values[1] * std::exp(-x_obs[ix]/current_values[3]) *
-                               (x_obs[ix]/(current_values[3]*current_values[3]));
-        gvec[4] += prefactor * current_values[2] * std::exp(-x_obs[ix]/current_values[4]) *
-                               (x_obs[ix] * std::pow(current_values[4],-2));
-        cvec[0] += 2 * w_obs[ix];
-        cvec[1] += 2 * w_obs[ix] * std::pow(std::exp(-x_obs[ix]/current_values[3]),2);
-        cvec[2] += 2 * w_obs[ix] * std::pow(std::exp(-x_obs[ix]/current_values[4]),2);
-        cvec[3] += 2 * w_obs[ix] * std::pow(current_values[1] * std::exp(-x_obs[ix]/current_values[3]) *
-                                   (x_obs[ix]/(current_values[3]*current_values[3])),2);
-        cvec[4] += 2 * w_obs[ix] * std::pow(current_values[2] * std::exp(-x_obs[ix]/current_values[4]) *
-                                   (x_obs[ix] * std::pow(current_values[4],-2)),2);
-      }
-      return gvec;
-    }
-
-    double functional(vecd current_values) {
-      double result = 0;
-      vecd fvec = fvec_callable(current_values);
-      for (int i = 0; i < fvec.size(); ++i) {
-        result += fvec[i]*fvec[i]*w_obs[i];
-      }
-      return result;
-    }
-
-    vecd curvatures() const{
-      return cvec;
-    }
-
-    vecd x_obs, y_obs, w_obs, cvec;
-};
-
-class dense_base_class: public bevington_silver, public scitbx::lstbx::normal_equations::non_linear_ls<double> {
-  public:
-    dense_base_class(int n_parameters):
-      scitbx::lstbx::normal_equations::non_linear_ls<double>(n_parameters)
-      {
-      }
-
-    void access_cpp_build_up_directly_dense(bool objective_only, scitbx::af::shared<double> current_values) {
-
-        vecd residuals = fvec_callable(current_values);
-        if (objective_only){
-          add_residuals(residuals.const_ref(), w_obs.const_ref());
-          return;
-        }
-
-        // add one of the normal equations per each observation
-        for (int ix = 0; ix < x_obs.size(); ++ix) {
-
-          scitbx::af::shared<double> jacobian_one_row_data;
-
-          jacobian_one_row_data.push_back( 1. );
-
-          jacobian_one_row_data.push_back( std::exp( -x_obs[ix]/ current_values[3]) );
-
-          jacobian_one_row_data.push_back( std::exp( -x_obs[ix]/ current_values[4]) );
-
-          jacobian_one_row_data.push_back( current_values[1] * std::exp( -x_obs[ix]/ current_values[3]) *
-                                           ( x_obs[ix] / (current_values[3]*current_values[3]) ));
-
-          jacobian_one_row_data.push_back( current_values[2] * std::exp( -x_obs[ix]/ current_values[4]) *
-                                           ( x_obs[ix] / (current_values[4]*current_values[4]) ));
-
-          add_equation(-residuals[ix], jacobian_one_row_data.const_ref(), w_obs[ix]);
-        }
-
-    }
-};
-*/
 class strumpack_base_class: public bevington_silver, public non_linear_ls_strumpack_wrapper {
   public:
     strumpack_base_class(int n_parameters):
@@ -609,4 +487,3 @@ class strumpack_base_class: public bevington_silver, public non_linear_ls_strump
 }}
 
 #endif // SCITBX_EXAMPLES_BEVINGTON_STRUMPACK_H
-

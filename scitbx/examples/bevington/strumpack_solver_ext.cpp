@@ -21,7 +21,7 @@
  * Developers: Pieter Ghysels, Francois-Henry Rouet, Xiaoye S. Li.
  *             (Lawrence Berkeley National Lab, Computational Research Division).
  *
- * Modified by Lee J. O'Riordan to adapt for use with cctbx via Boost.Python 
+ * Modified by Lee J. O'Riordan to adapt for use with cctbx via Boost.Python
  */
 #include <iostream>
 #include "StrumpackSparseSolver.hpp"
@@ -54,8 +54,8 @@ namespace sparse_solver {
       @return Description of returned value.
     */
     my_solver(const int n_rows, const int n_cols,
-              const scitbx::af::shared<intType> A_row_offset, 
-              const scitbx::af::shared<intType> A_col_idx, 
+              const scitbx::af::shared<intType> A_row_offset,
+              const scitbx::af::shared<intType> A_col_idx,
               const scitbx::af::shared<numType> A_values,
               const scitbx::af::shared<numType> b) : x_res(n_rows, 0.){//int argc, char* argv[])
       StrumpackSparseSolver<numType,intType> spss;
@@ -108,20 +108,20 @@ namespace sparse_solver {
               const scitbx::af::shared<numType> b){
 
       Eigen::SparseMatrix<double, Eigen::RowMajor> spMat(n_rows,n_cols);
-	    std::vector<Eigen::Triplet<double,int> > tList;
+            std::vector<Eigen::Triplet<double,int> > tList;
 
       Eigen::VectorXd b_internal(n_cols);
       for (int i = 0; i<n_cols; ++i){
          b_internal[i] = *(b.begin()+i);
       }
 
-	    int c_l, r_i;
-	    for(int i=0; i<n_cols; ++i){
+            int c_l, r_i;
+            for(int i=0; i<n_cols; ++i){
         r_i = *(A_row_offset.begin()+i); //Row value at index i
-	      c_l = ( *( A_row_offset.begin() + 1 + i ) - r_i ); //Column length between the given row offsets
+              c_l = ( *( A_row_offset.begin() + 1 + i ) - r_i ); //Column length between the given row offsets
         for(int j=0; j< c_l; ++j){
-           tList.push_back( 
-             Eigen::Triplet<double,int>( i, *(A_col_idx.begin() + j + r_i), *(A_values.begin() + j + r_i) ) 
+           tList.push_back(
+             Eigen::Triplet<double,int>( i, *(A_col_idx.begin() + j + r_i), *(A_values.begin() + j + r_i) )
            );
         }
       }
@@ -132,10 +132,10 @@ namespace sparse_solver {
       Eigen::SparseMatrix<double> eigen_normal_matrix (spMat);//.transpose()*eigen_normal_matrix);
 /*
       for(int outer = 0; outer < eigen_normal_matrix.outerSize(); ++outer){
-	      std::cout <<"OUTER[" << outer << "]=" << *(eigen_normal_matrix.outerIndexPtr() +outer) << std::endl;
+              std::cout <<"OUTER[" << outer << "]=" << *(eigen_normal_matrix.outerIndexPtr() +outer) << std::endl;
       }
       for(int inner = 0; inner < eigen_normal_matrix.nonZeros(); ++inner){
-	      std::cout <<"INNER[" << inner << "]=" << *(eigen_normal_matrix.innerIndexPtr() +inner) << std::endl;
+              std::cout <<"INNER[" << inner << "]=" << *(eigen_normal_matrix.innerIndexPtr() +inner) << std::endl;
       }
       for(int value = 0; value < eigen_normal_matrix.nonZeros(); ++value){
         std::cout <<"VALUE[" << value << "]=" << *(eigen_normal_matrix.valuePtr() +value) << std::endl;
@@ -154,7 +154,7 @@ namespace sparse_solver {
       scitbx::af::shared<intType> spMat_r( (int*) spMat.outerIndexPtr(), spMat.outerSize());
       scitbx::af::shared<intType> spMat_c( (int*) spMat.innerIndexPtr(), spMat.nonZeros());
       scitbx::af::shared<numType> spMat_v( (double*) spMat.valuePtr(), spMat.nonZeros());
-  */    
+  */
       scitbx::af::shared<intType> spMat_r( eigen_normal_matrix.outerSize() );
       scitbx::af::shared<intType> spMat_c( eigen_normal_matrix.nonZeros() );
       scitbx::af::shared<numType> spMat_v( eigen_normal_matrix.nonZeros() );
@@ -181,7 +181,7 @@ namespace sparse_solver {
 /*
       my_solver( n_rows, n_cols, A_row_offset, A_col_idx, A_values, b) ;//: x_res(n_rows, 0.)
 */
-	}
+        }
     scitbx::af::shared<numType> x_res; //Resulting x will be stored here
   }; //end of struct sparse_solver
 
@@ -190,18 +190,18 @@ namespace {
   void export_strumpack_solver() {
     typedef return_value_policy<return_by_value> rbv;
     class_<sparse_solver::my_solver> ("sparse_solver", no_init)
-      .def( init< int, int, 
+      .def( init< int, int,
                  scitbx::af::shared<intType>,
                  scitbx::af::shared<intType>,
                  scitbx::af::shared<numType>,
-                 scitbx::af::shared<numType> 
+                 scitbx::af::shared<numType>
                 >
-      ((  
-        boost::python::arg("n_rows"), 
-        boost::python::arg("n_cols"), 
-        boost::python::arg("A_row_offset"), 
-        boost::python::arg("A_col_idx"), 
-        boost::python::arg("A_values"), 
+      ((
+        boost::python::arg("n_rows"),
+        boost::python::arg("n_cols"),
+        boost::python::arg("A_row_offset"),
+        boost::python::arg("A_col_idx"),
+        boost::python::arg("A_values"),
         boost::python::arg("b")
       ))
       )
@@ -215,4 +215,3 @@ BOOST_PYTHON_MODULE(scitbx_examples_strumpack_solver_ext)
 {
    sparse_solver::boost_python::export_strumpack_solver();
 }
-

@@ -1,6 +1,7 @@
 from scitbx.matrix import sqr,col
 from cctbx.array_family import flex
 from libtbx.test_utils import approx_equal
+from __future__ import division
 '''
 /          \     /    \
 | 1. 2. 1. |     | 2. |
@@ -19,7 +20,7 @@ ext = boost.python.import_ext("scitbx_examples_strumpack_solver_ext")
 
 n_rows = 3
 n_cols = 3
-nnz = 8 
+nnz = 8
 
 A_row_offset = flex.int([0,3,6,9])
 A_col_offset = flex.int([0,1,2,0,1,2,0,1,2])

@@ -1,4 +1,5 @@
-#Small-scale test script for STRUMPACK solution, compared with scipy 
+#Small-scale test script for STRUMPACK solution, compared with scipy
+from __future__ import division
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
