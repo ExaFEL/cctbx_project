@@ -1,4 +1,4 @@
-#ifndef SCITBX_EXAMPLES_BEVINGTON_STRUMPACK_H
+#if !defined SCITBX_EXAMPLES_BEVINGTON_STRUMPACK_H && defined _CCTBX_STRUMPACK_
 #define SCITBX_EXAMPLES_BEVINGTON_STRUMPACK_H
 
 #include <scitbx/array_family/shared.h>
@@ -7,7 +7,14 @@
 #include <scitbx/sparse/matrix.h>
 #include <vector>
 #include <Eigen/Sparse>
-#include "StrumpackSparseSolver.hpp"
+
+/*
+//Need GCC 5.x or CLANG to support this new compilation feature
+#if __has_include("StrumpackSparseSolver.hpp")
+# include "StrumpackSparseSolver.hpp"
+#endif
+*/
+# include "StrumpackSparseSolver.hpp"
 
 #include <iostream>
 #include <fstream>

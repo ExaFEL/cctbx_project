@@ -244,6 +244,8 @@ class xscale6e: public scitbx::example::non_linear_ls_eigen_wrapper, public scal
     }
 };
 
+//Include this code at compile-time with -D_CCTBX_STRUMPACK_
+#ifdef _CCTBX_STRUMPACK_
 class xscale7e: public scitbx::example::non_linear_ls_strumpack_wrapper, public scaling_common_functions {
   public:
     xscale7e(int n_parameters):
@@ -309,7 +311,7 @@ class xscale7e: public scitbx::example::non_linear_ls_strumpack_wrapper, public 
         }
     }
 };
-
+#endif // _CCTBX_STRUMPACK_
 }}
 
 #endif // CCTBX_EXAMOKE_EXAMPLES_H

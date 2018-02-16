@@ -15,6 +15,10 @@ from cctbx.uctbx import unit_cell
 uc_params = (281,281,165,90,90,120)
 uc = unit_cell(uc_params)
 
+from xfel.command_line.cxi_merge import master_phil
+phil = iotbx.phil.process_command_line(args=[], master_string=master_phil).show()
+phil_params = phil.work.extract()
+
 def choice_as_bitflag(choices):
   from cctbx.examples.merging import ParameterFlags as p
   flags = 0
@@ -28,11 +32,14 @@ def choice_as_bitflag(choices):
   return flags
 
 def choice_as_helper_base(choices):
+
  if "Deff" in choices or "Rxy" in choices:
     from cctbx.examples.merging import postrefine_base as base_class
  else:
-    #from cctbx.examples.merging import xscale6e as base_class
-    from cctbx.examples.merging import xscale7e as base_class
+    if phil_params.levmar.strumpack==True:
+      from cctbx.examples.merging import xscale7e as base_class
+    else:
+      from cctbx.examples.merging import xscale6e as base_class
 
  class levenberg_helper(base_class, normal_eqns.non_linear_ls_mixin):
   def __init__(pfh, initial_estimates):
