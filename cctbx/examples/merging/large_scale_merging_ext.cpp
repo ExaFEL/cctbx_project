@@ -167,10 +167,11 @@ namespace boost_python { namespace {
         (arg("objective_only"),arg("current_values")))
     ;
 
+//Include this code at compile-time with -D_CCTBX_STRUMPACK_
+#ifdef _CCTBX_STRUMPACK_
     typedef scitbx::example::non_linear_ls_strumpack_wrapper nllssw;
     typedef xscale7e wt7e;
-    class_<wt7e,
-           bases<nllssw, scf  > >(
+    class_<wt7e, bases<nllssw, scf> >(
       "xscale7e", no_init)
       .def(init<int>(arg("n_parameters")))
       .def("access_cpp_build_up_directly_strumpack_eqn",&wt7e::access_cpp_build_up_directly_strumpack_eqn,
@@ -179,14 +180,13 @@ namespace boost_python { namespace {
     ;
 
     typedef postrefine_base_strumpack prbs;
-    class_<prbs,
-           bases<wt7e  > >(
+    class_<prbs, bases<wt7e> >(
       "postrefine_base_strumpack", no_init)
       .def(init<int>(arg("n_parameters")))
       .def("access_cpp_build_up_directly_strumpack_eqn",&prbs::access_cpp_build_up_directly_strumpack_eqn,
         (arg("objective_only"),arg("current_values")))
     ;
-
+#endif
   }
 
 }}

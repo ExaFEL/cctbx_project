@@ -215,7 +215,7 @@ class postrefine_base: public xscale6e {
         }
     }
 };
-
+#ifdef _CCTBX_STRUMPACK_
 class postrefine_base_strumpack: public xscale7e {
   typedef scitbx::vec3<double> vec3;
   typedef scitbx::mat3<double> mat3;
@@ -423,6 +423,7 @@ class postrefine_base_strumpack: public xscale7e {
         }
     }
 };
+#endif
 
 }}
 

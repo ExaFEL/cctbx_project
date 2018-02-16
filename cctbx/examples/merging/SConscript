@@ -3,8 +3,11 @@ import os
 Import("env_base", "env_etc")
 
 try:
+  strump_avail=False
   env_etc.eigen_dist = os.path.abspath(os.path.join(libtbx.env.dist_path("boost"),"../eigen"))
   env_etc.strumpack_dist = os.path.abspath(os.path.join(libtbx.env.dist_path("boost"),"../../strumpack_build/include") )
+  if os.path.isdir(env_etc.strumpack_dist):
+    strump_avail=True
   if os.path.isdir(env_etc.eigen_dist):
     env_etc.eigen_include = env_etc.eigen_dist
     env_etc.large_scale_merging_common_includes = [
@@ -13,8 +16,9 @@ try:
       env_etc.cctbx_include,
       env_etc.scitbx_include,
       env_etc.boost_include,
-      env_etc.strumpack_dist
     ]
+    if strump_avail:
+      env_etc.large_scale_merging_common_includes.append(env_etc.strumpack_dist)
     env = env_base.Clone(SHLINKFLAGS=env_etc.shlinkflags)
     env.Append(LIBS=["cctbx"] + env_etc.libm)
     env_etc.include_registry.append(
@@ -30,16 +34,17 @@ try:
     if (not env_etc.no_boost_python):
       Import("env_boost_python_ext")
       env_large_scale_merging_boost_python_ext = env_boost_python_ext.Clone()
-      env_large_scale_merging_boost_python_ext.Replace(
-        CC="mpicc",
-        CXX="mpic++",
-        SHCC="mpicc",
-        SHCXX="mpic++",
-        SHLINK="mpic++",
-      )
-      env_large_scale_merging_boost_python_ext.Append(SHCCFLAGS=["-std=c++11","-g"],
-        LIBS=["strumpack", "scotch", "metis", "parmetis", "scotcherr", "mpi","ptscotch","ptscotcherr","stdc++"],
-        LIBPATH=os.path.abspath(os.path.join(libtbx.env.dist_path("boost"),"../../strumpack_build/lib"))
+      if strump_avail:
+        env_large_scale_merging_boost_python_ext.Replace(
+          CC="mpicc",
+          CXX="mpic++",
+          SHCC="mpicc",
+          SHCXX="mpic++",
+          SHLINK="mpic++",
+        )
+        env_large_scale_merging_boost_python_ext.Append(SHCCFLAGS=["-std=c++11","-g","-D_CCTBX_STRUMPACK_"],
+          LIBS=["strumpack", "scotch", "metis", "parmetis", "scotcherr", "mpi","ptscotch","ptscotcherr","stdc++"],
+          LIBPATH=os.path.abspath(os.path.join(libtbx.env.dist_path("boost"),"../../strumpack_build/lib"))
       )
 
 

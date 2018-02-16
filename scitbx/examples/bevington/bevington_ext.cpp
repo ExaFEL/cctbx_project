@@ -13,8 +13,8 @@
 #include <scitbx/examples/bevington/prototype_core_strumpack.h>
 #include <Eigen/Sparse>
 #include <boost/python/return_internal_reference.hpp>
-#define _OPENMP 1
-#include <omp.h>
+//#define _OPENMP 1
+//#include <omp.h>
 
 using namespace boost::python;
 namespace scitbx{
@@ -87,9 +87,7 @@ namespace boost_python { namespace {
       .def("access_cpp_build_up_directly_eigen_eqn", &bev::access_cpp_build_up_directly_eigen_eqn,
         (arg("objective_only"),arg("current_values")))
     ;
-
-  //#############################
-
+#ifdef _CCTBX_STRUMPACK_
     class_<linear_ls_strumpack_wrapper>("linear_ls_strumpack_wrapper", no_init)
       .def(init<int>(arg("n_parameters")))
       .def("n_parameters", &linear_ls_strumpack_wrapper::n_parameters)
@@ -128,6 +126,7 @@ namespace boost_python { namespace {
       .def("access_cpp_build_up_directly_strumpack_eqn", &bevs::access_cpp_build_up_directly_strumpack_eqn,
         (arg("objective_only"),arg("current_values")))
     ;
+#endif //_CCTBX_STRUMPACK_
 
   }
 
