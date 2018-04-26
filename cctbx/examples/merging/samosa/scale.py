@@ -10,7 +10,7 @@ from cctbx.examples.merging.data_utilities import show_histogram
 from cctbx.examples.merging.data_subset import mapper_factory
 from cctbx import miller
 from xfel.merging.database.merging_database_flex import read_experiments
-from cctbx.examples.merging.test_levenberg_sparse import xscale6e
+from cctbx.examples.merging.test_levenberg_sparse import xscale6e, xscale_strumpack
 
 class execute_case(object):
  def __init__(self,datadir,work_params,plot=False,esd_plot=False,half_data_flag=0):
@@ -70,7 +70,10 @@ class execute_case(object):
 
   T = Timer("%d frames"%(len(G), ))
 
-  mapper = mapper_factory(xscale6e)
+  if work_params.levmar.strumpack==True:
+    mapper = mapper_factory(xscale_strumpack)
+  else:
+    mapper = mapper_factory(xscale6e)
   minimizer = mapper(I,G,I_visited,G_visited,FOBS,params=work_params,
                      experiments=experiment_manager.get_experiments())
 
